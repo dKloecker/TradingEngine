@@ -1,0 +1,114 @@
+name: CI
+on:
+  push:
+    branches: [ main, "feat/**" ]
+  pull_request:
+    branches: [ main ]
+
+
+jobs:
+  build-and-test:
+    name: "${{ matrix.compiler }} / ${{ matrix.build_type }}"
+    runs-on: ubuntu-24.04 [Beta]
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ gcc, clang ]
+        build_type: [ Debug, Release ]
+        include:
+          - compiler: gcc
+            cc: gcc-14
+            cxx: g++-14
+          - compiler: clangd
+            cc: clangd-18
+            cxx: clangd++-18
+
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            sudo apt-get install -y gcc-14 g++-14
+          else
+            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+            sudo add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main"
+            sudo apt-get update
+            sudo apt-get install -y clang-18
+          fi
+
+      - name: Cache FetchContent
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: fetchcontent-${{ matrix.compiler }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            fetchcontent-${{ matrix.compiler }}-
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TESTING={{ matrix.build_type }} \
+            -DTRADING_BUILD_TESTING=ON \
+            -DFETCHCONTENT_QUIET=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --parallel
+
+      - name: Run benchmarks
+        if: matrix.build_type == 'Release'
+        run: |
+          ./build/core/core_benchmarks \
+            --benchmark_format=json \
+            --benchmark_repetitions=5 \
+            --benchmark_out=benchmark_results.json
+
+      - name: Upload benchmark results
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.compiler }}
+          path: benchmark_results.json
+
+
+  benchmark-track:
+    name: Track Benchmarks
+    needs: build-and-test
+    runs-on: ubuntu-24.04 [Beta]
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Download the JSON artifact uploaded by the build job
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results-gcc
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'googlecpp'
+          output-file-path: benchmark_results.json
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: benchmarks
+          auto-push: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
