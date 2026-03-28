@@ -11,6 +11,8 @@
 #include <vector>
 
 namespace dsl {
+// TODO: Update to follow pmr function signature.
+// TODO: Support giving value type.
 /**
  * @brief Fixed-size pool allocator backed by aligned memory blocks.
  *
