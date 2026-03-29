@@ -11,8 +11,6 @@
 #include <vector>
 
 namespace dsl {
-// TODO: Update to follow pmr function signature.
-// TODO: Support giving value type.
 /**
  * @brief Fixed-size pool allocator backed by aligned memory blocks.
  *
@@ -28,7 +26,7 @@ template<size_t ChunkSize, size_t ChunksPerBlock = 4, size_t Alignment = ChunkSi
     requires (ChunkSize >= sizeof(void *))
              && (Alignment >= alignof(void *))
              && (ChunkSize % Alignment == 0)
-class PoolAllocator : public std::pmr::memory_resource {
+class pool_resource : public std::pmr::memory_resource {
     static constexpr size_t BlockSize = ChunksPerBlock * ChunkSize;
 
     /**

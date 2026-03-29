@@ -20,7 +20,7 @@ struct alignas(64) LargeObject {
 
 template<typename T>
 static void BM_PoolAllocate(benchmark::State &state) {
-    dsl::PoolAllocator<sizeof(T), 64, alignof(T)> pool;
+    dsl::pool_resource<sizeof(T), 64, alignof(T)> pool;
     // warm up and initial block allocation so that we do not have any growth.
     void *warmup = pool.allocate(sizeof(T), alignof(T));
     pool.deallocate(warmup, sizeof(T), alignof(T));
@@ -65,7 +65,7 @@ static void BM_PoolBlockGrowth(benchmark::State &state) {
     for (auto _: state) {
         // fill initial block
         state.PauseTiming();
-        dsl::PoolAllocator<sizeof(SmallObject), 2> pool;
+        dsl::pool_resource<sizeof(SmallObject), 2> pool;
         void *                                     p1 = pool.allocate(sizeof(SmallObject), alignof(SmallObject));
         void *                                     p2 = pool.allocate(sizeof(SmallObject), alignof(SmallObject));
         benchmark::DoNotOptimize(p1);
@@ -103,7 +103,7 @@ BENCHMARK(BM_PoolBlockGrowth)->MinWarmUpTime(1.0);
 template<typename T>
 static void BM_PoolSustainedLiveObjects(benchmark::State &state) {
     const size_t                                  live_count = state.range(0);
-    dsl::PoolAllocator<sizeof(T), 64, alignof(T)> pool;
+    dsl::pool_resource<sizeof(T), 64, alignof(T)> pool;
 
     // Pre-populate pool with N objects
     std::vector<void *> live(live_count);
@@ -162,7 +162,7 @@ static void BM_SysAllocateSustained(benchmark::State &state) {
 
 static void BM_PoolAllocateSustained(benchmark::State &state) {
     for (auto _: state) {
-        dsl::PoolAllocator<sizeof(SmallObject), 64> pool;
+        dsl::pool_resource<sizeof(SmallObject), 64> pool;
         for (int i = 0; i < state.range(0); i++) {
             void *p = pool.allocate(sizeof(SmallObject), alignof(SmallObject));
             benchmark::DoNotOptimize(p);
@@ -189,7 +189,7 @@ BENCHMARK(BM_PmrSysPoolAllocateSustained)->Range(8, 1024)->MinWarmUpTime(1.0);
 BENCHMARK(BM_PoolAllocateSustained)->Range(8, 1024)->MinWarmUpTime(1.0);
 
 static void BM_PoolAllocateDeallocationOnFragmentation(benchmark::State &state) {
-    dsl::PoolAllocator<sizeof(SmallObject), 8> pool;
+    dsl::pool_resource<sizeof(SmallObject), 8> pool;
 
     constexpr size_t    live_count = 100;
     std::vector<void *> live(live_count);
@@ -256,7 +256,7 @@ BENCHMARK(BM_PmrSyncPoolAllocateDeallocationOnFragmentation)->MinWarmUpTime(1.0)
 BENCHMARK(BM_PoolAllocateDeallocationOnFragmentation)->MinWarmUpTime(1.0);
 
 static void BM_PoolAllocateMixedAllocAndDeallocPattern(benchmark::State &state) {
-    dsl::PoolAllocator<sizeof(SmallObject), 32> pool;
+    dsl::pool_resource<sizeof(SmallObject), 32> pool;
 
     constexpr size_t    live_count = 100;
     std::vector<void *> live(live_count);

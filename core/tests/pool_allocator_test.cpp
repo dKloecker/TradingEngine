@@ -5,7 +5,7 @@
 #include "pool_allocator.h"
 
 // Concrete sizes for testing
-using SmallPool = dsl::PoolAllocator<16, 4>; // 16-byte chunks, 4 per block
+using SmallPool = dsl::pool_resource<16, 4>; // 16-byte chunks, 4 per block
 
 TEST(PoolAllocator, AllocateReturnsNonNull) {
     SmallPool pool;
@@ -39,7 +39,7 @@ TEST(PoolAllocator, GrowthDoesNotInvalidate) {
     constexpr size_t chunks_per_block = 2;
     constexpr size_t alignment        = alignof(std::max_align_t);
 
-    dsl::PoolAllocator<chunk_size, chunks_per_block> pool;
+    dsl::pool_resource<chunk_size, chunks_per_block> pool;
 
     // fill first block (2 chunks)
     auto *ptr1 = static_cast<char *>(pool.allocate(chunk_size, alignment));
@@ -94,7 +94,7 @@ TEST(PoolAllocator, DeallocateUsesPreviousFree) {
 }
 
 TEST(PoolAllocator, DeallocateAcrossBlocks) {
-    dsl::PoolAllocator<16, 2> pool; // 2 chunks per block — easy to force growth
+    dsl::pool_resource<16, 2> pool; // 2 chunks per block — easy to force growth
 
     auto *p1 = pool.allocate(16); // block 1, chunk 0
     auto *p2 = pool.allocate(16); // block 1, chunk 1
@@ -118,4 +118,13 @@ TEST(PoolAllocator, DeallocateAcrossBlocks) {
     EXPECT_TRUE(r1_reused) << "Expected a previously freed chunk";
     EXPECT_TRUE(r2_reused) << "Expected a previously freed chunk";
 }
+
+TEST(PoolAllocator, UsePmrAllocator) {
+    dsl::pool_resource<1024> pool;
+    std::pmr::vector<int>    v{&pool};
+    for (int i = 0; i < 100; i++) v.push_back(i);
+    for (int i = 0; i < 100; i++)
+        EXPECT_EQ(v[i], i);
+}
+
 
