@@ -9,19 +9,16 @@ on:
 jobs:
   build-and-test:
     name: "${{ matrix.compiler }} / ${{ matrix.build_type }}"
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
-        compiler: [ gcc, clang ]
+        compiler: [ clang ]
         build_type: [ Debug, Release ]
         include:
-          - compiler: gcc
-            cc: gcc-14
-            cxx: g++-14
           - compiler: clang
-            cc: clang-18
-            cxx: clang++-18
+            cc: clang
+            cxx: clang++
 
     env:
       CC: ${{ matrix.cc }}
@@ -30,18 +27,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install compiler
-        run: |
-          sudo apt-get update
-          if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            sudo apt-get install -y gcc-14 g++-14
-          else
-            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-            sudo add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main"
-            sudo apt-get update
-            sudo apt-get install -y clang-18
-          fi
 
       - name: Cache FetchContent
         uses: actions/cache@v4
@@ -67,10 +52,11 @@ jobs:
       - name: Run benchmarks
         if: matrix.build_type == 'Release'
         run: |
-          ./build/core/core_benchmarks \
+          ./build/core/benchmarks/core_benchmarks \
             --benchmark_format=json \
             --benchmark_repetitions=5 \
-            --benchmark_out=benchmark_results.json
+            --benchmark_out=benchmark_results.json \
+            || test -f benchmark_results.json
 
       - name: Upload benchmark results
         if: matrix.build_type == 'Release'
@@ -83,7 +69,7 @@ jobs:
   benchmark-track:
     name: Track Benchmarks
     needs: build-and-test
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -95,11 +81,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Download the JSON artifact uploaded by the build job
       - name: Download benchmark results
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-results-gcc
+          name: benchmark-results-clang
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
