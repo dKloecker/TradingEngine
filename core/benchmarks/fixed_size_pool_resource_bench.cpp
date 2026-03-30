@@ -184,9 +184,6 @@ static void BM_PoolAllocateDeallocationOnFragmentation(benchmark::State &state) 
     for (size_t i = 0; i < live_count; i++) {
         live[i] = pool.allocate(sizeof(SmallObject), alignof(SmallObject));
     }
-    for (size_t i = 0; i < live_count; i += 2) {
-        pool.deallocate(live[i], sizeof(SmallObject), alignof(SmallObject));
-    }
 
     for (auto _: state) {
         for (size_t i = 0; i < live_count; i += 2)
@@ -206,9 +203,6 @@ static void BM_PmrSyncPoolAllocateDeallocationOnFragmentation(benchmark::State &
     for (size_t i = 0; i < live_count; i++) {
         live[i] = pool.allocate(sizeof(SmallObject), alignof(SmallObject));
     }
-    for (size_t i = 0; i < live_count; i += 2) {
-        pool.deallocate(live[i], sizeof(SmallObject), alignof(SmallObject));
-    }
 
     for (auto _: state) {
         for (size_t i = 0; i < live_count; i += 2)
@@ -223,9 +217,6 @@ static void BM_SysAllocateDeallocationOnFragmentation(benchmark::State &state) {
     std::vector<void *> live(live_count);
     for (size_t i = 0; i < live_count; i++) {
         live[i] = ::operator new(sizeof(SmallObject));
-    }
-    for (size_t i = 0; i < live_count; i += 2) {
-        ::operator delete(live[i]);
     }
 
     for (auto _: state) {
