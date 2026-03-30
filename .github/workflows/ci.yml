@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-test:
     name: "${{ matrix.compiler }} / ${{ matrix.build_type }}"
-    runs-on: ubuntu-24.04 [Beta]
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -19,9 +19,9 @@ jobs:
           - compiler: gcc
             cc: gcc-14
             cxx: g++-14
-          - compiler: clangd
-            cc: clangd-18
-            cxx: clangd++-18
+          - compiler: clang
+            cc: clang-18
+            cxx: clang++-18
 
     env:
       CC: ${{ matrix.cc }}
@@ -54,7 +54,7 @@ jobs:
       - name: Configure
         run: |
           cmake -B build \
-            -DCMAKE_BUILD_TESTING={{ matrix.build_type }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DTRADING_BUILD_TESTING=ON \
             -DFETCHCONTENT_QUIET=OFF
 
@@ -83,7 +83,7 @@ jobs:
   benchmark-track:
     name: Track Benchmarks
     needs: build-and-test
-    runs-on: ubuntu-24.04 [Beta]
+    runs-on: ubuntu-24.04
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
