@@ -54,9 +54,8 @@ jobs:
         run: |
           ./build/core/benchmarks/core_benchmarks \
             --benchmark_format=json \
-            --benchmark_repetitions=5 \
-            --benchmark_out=benchmark_results.json \
-            || test -f benchmark_results.json
+            --benchmark_repetitions=3 \
+            --benchmark_out=benchmark_results.json
 
       - name: Upload benchmark results
         if: matrix.build_type == 'Release'
