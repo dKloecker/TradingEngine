@@ -2,10 +2,10 @@
 // Created by Dominic Kloecker on 23/03/2026.
 //
 #include <gtest/gtest.h>
-#include "pool_allocator.h"
+#include "fixed_size_pool_resource.h"
 
 // Concrete sizes for testing
-using SmallPool = dsl::pool_resource<16, 4>; // 16-byte chunks, 4 per block
+using SmallPool = dsl::fixed_size_pool_resource_bench<16, 4>; // 16-byte chunks, 4 per block
 
 TEST(PoolAllocator, AllocateReturnsNonNull) {
     SmallPool pool;
@@ -14,19 +14,19 @@ TEST(PoolAllocator, AllocateReturnsNonNull) {
 }
 
 TEST(PoolAllocator, AllocateIsAligned) {
-    SmallPool pool;
-    void *    p = pool.allocate(16, 16);
+    dsl::fixed_size_pool_resource_bench<sizeof(int), 4, 16> pool;
+    void *                                            p = pool.allocate(16);
     EXPECT_EQ(reinterpret_cast<uintptr_t>(p) % 16, 0);
 }
 
 TEST(PoolAllocator, CanAllocateDifferentAllignment) {
-    SmallPool pool;
-
-    void *p1 = pool.allocate(8, 4);
+    dsl::fixed_size_pool_resource_bench<sizeof(int), 4, 4> pool1;
+    void *                                           p1 = pool1.allocate(8, 4);
     ASSERT_NE(p1, nullptr);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(p1) % 4, 0);
 
-    void *p2 = pool.allocate(4, 8);
+    dsl::fixed_size_pool_resource_bench<sizeof(int), 4, 8> pool2;
+    void *                                           p2 = pool2.allocate(4, 8);
     ASSERT_NE(p2, nullptr);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(p2) % 8, 0); // satisfies requested alignment
 
@@ -39,7 +39,7 @@ TEST(PoolAllocator, GrowthDoesNotInvalidate) {
     constexpr size_t chunks_per_block = 2;
     constexpr size_t alignment        = alignof(std::max_align_t);
 
-    dsl::pool_resource<chunk_size, chunks_per_block> pool;
+    dsl::fixed_size_pool_resource_bench<chunk_size, chunks_per_block> pool;
 
     // fill first block (2 chunks)
     auto *ptr1 = static_cast<char *>(pool.allocate(chunk_size, alignment));
@@ -84,8 +84,9 @@ TEST(PoolAllocator, DeallocateUsesPreviousFree) {
     auto *ptr1 = static_cast<char *>(pool.allocate(8));
     auto *ptr2 = static_cast<char *>(pool.allocate(8));
 
-    // after: deallocate(ptr2) -> free_: [ptr2]
-    // after: deallocate(ptr1) -> free_: [ptr1 -> ptr2]
+    // before: free_: []
+    // after : deallocate(ptr2) -> free_: [ptr2]
+    // after : deallocate(ptr1) -> free_: [ptr1 -> ptr2]
     pool.deallocate(ptr2, 0, 0);
     pool.deallocate(ptr1, 0, 0);
     // so next alloc returns ptr1, then ptr2
@@ -94,7 +95,7 @@ TEST(PoolAllocator, DeallocateUsesPreviousFree) {
 }
 
 TEST(PoolAllocator, DeallocateAcrossBlocks) {
-    dsl::pool_resource<16, 2> pool; // 2 chunks per block — easy to force growth
+    dsl::fixed_size_pool_resource_bench<16, 2> pool; // 2 chunks per block — easy to force growth
 
     auto *p1 = pool.allocate(16); // block 1, chunk 0
     auto *p2 = pool.allocate(16); // block 1, chunk 1
@@ -119,9 +120,9 @@ TEST(PoolAllocator, DeallocateAcrossBlocks) {
     EXPECT_TRUE(r2_reused) << "Expected a previously freed chunk";
 }
 
-TEST(PoolAllocator, UsePmrAllocator) {
-    dsl::pool_resource<1024> pool;
-    std::pmr::vector<int>    v{&pool};
+TEST(PoolAllocator, UseAllocatorInPmrContainer) {
+    dsl::fixed_size_pool_resource_bench<10024, 16> pool;
+    std::pmr::vector<int>                    v{&pool};
     for (int i = 0; i < 100; i++) v.push_back(i);
     for (int i = 0; i < 100; i++)
         EXPECT_EQ(v[i], i);

@@ -10,7 +10,7 @@ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googlebenchmark)
 
 add_executable(core_benchmarks
-        pool_allocator_bench.cpp
+        fixed_size_pool_resource_bench.cpp
 )
 
 target_link_libraries(core_benchmarks
