@@ -54,7 +54,7 @@ jobs:
         run: |
           ./build/core/benchmarks/core_benchmarks \
             --benchmark_format=json \
-            --benchmark_repetitions=3 \
+            --benchmark_repetitions=5 \
             --benchmark_out=benchmark_results.json
 
       - name: Upload benchmark results
@@ -92,6 +92,7 @@ jobs:
           output-file-path: benchmark_results.json
           gh-pages-branch: gh-pages
           benchmark-data-dir-path: benchmarks
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           alert-threshold: '150%'
           comment-on-alert: true
