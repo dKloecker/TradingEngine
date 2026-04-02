@@ -1,6 +1,10 @@
 add_library(core STATIC
         fixed_size_pool_resource.cpp
         fixed_size_pool_resource.h
+        spsc_queue.cpp
+        spsc_queue.h
+        util.cpp
+        util.h
 )
 
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

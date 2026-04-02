@@ -8,6 +8,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(core_tests
         fixed_size_pool_resource_test.cpp
+        spsc_queue_test.cpp
 )
 
 target_link_libraries(core_tests
