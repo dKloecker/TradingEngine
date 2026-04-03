@@ -6,6 +6,8 @@
 
 #include <thread>
 
+namespace dsl::test::queue {
+
 TEST(SpscQueue, TopReturnsNullptrWhenEmpty) {
     dsl::spsc_queue<int, 16> q;
     EXPECT_EQ(q.top(), nullptr);
@@ -144,3 +146,5 @@ TEST(SpscQueue, ProducerConsumerThreads) {
     EXPECT_EQ(elements, popped);
     EXPECT_TRUE(q.empty());
 }
+
+} // namespace dsl::test::queue
