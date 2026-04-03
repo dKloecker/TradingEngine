@@ -10,15 +10,10 @@
 #include "util.h"
 
 namespace dsl {
-/**
- * @brief Lock-free single-producer single-consumer bounded queue.
- *
- * @tparam T         Element type
- * @tparam Capacity  Maximum number of elements (must be power of two)
- */
 template<typename T, size_t Capacity>
     requires PowerOfTwo<Capacity>
-class spsc_queue {
+class spsc_queue_imp {
+    using value_type                                     = T;
     static constexpr size_t         ELEMENT_SIZE         = sizeof(T);
     static constexpr size_t         BUFFER_SIZE          = Capacity * ELEMENT_SIZE;
     std::byte                       buffer_[BUFFER_SIZE] = {};
@@ -53,7 +48,7 @@ public:
      * Moves the front element into the fill parameter and destroys it
      * @return true on success, false if the queue is empty.
      */
-    bool try_pop(T &fill) {
+    bool pop(T &fill) {
         const size_t curr = head_.load(std::memory_order_relaxed);
         if (tail_.load(std::memory_order_acquire) - curr == 0) return false;
 
@@ -68,7 +63,7 @@ public:
     /**
      * @return The moved front element, or std::nullopt if the queue is empty.
      */
-    std::optional<T> pop() {
+    std::optional<T> try_pop() {
         const size_t curr = head_.load(std::memory_order_relaxed);
         if (tail_.load(std::memory_order_acquire) - curr == 0) return std::nullopt;
 
@@ -89,11 +84,30 @@ public:
         return at(slot(head_.load(std::memory_order_relaxed)));
     }
 
-    ~spsc_queue() {
+    void reset() {
         // Clear queue and delete any remaining elements from it
         while (slot(head_) < slot(tail_)) at(slot(head_++))->~T();
     }
+
+    ~spsc_queue_imp() {
+        reset();
+    }
+};
+
+/**
+ * @brief Lock-free single-producer single-consumer bounded queue, with a capacity at minimum
+ * the requested size.
+ *
+ * @tparam T                  Element type
+ * @tparam RequestedCapacity  Minimum number of elements the queue can hold
+
+ */
+template<typename T, size_t RequestedCapacity>
+class spsc_queue : public spsc_queue_imp<T, round_up_pow2(RequestedCapacity)> {
+public:
+    static constexpr size_t capacity = round_up_pow2(RequestedCapacity);
 };
 }
+
 
 #endif //TRADING_SPSC_RING_BUFFER_H

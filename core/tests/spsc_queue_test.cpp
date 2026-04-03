@@ -14,13 +14,13 @@ TEST(SpscQueue, TopReturnsNullptrWhenEmpty) {
 TEST(SpscQueue, TryPopReturnsFalseWhenEmpty) {
     dsl::spsc_queue<int, 16> q;
     int                      val = 42;
-    EXPECT_FALSE(q.try_pop(val));
+    EXPECT_FALSE(q.pop(val));
     EXPECT_EQ(val, 42);
 }
 
 TEST(SpscQueue, PopReturnsNulloptWhenEmpty) {
     dsl::spsc_queue<int, 16> q;
-    EXPECT_EQ(q.pop(), std::nullopt);
+    EXPECT_EQ(q.try_pop(), std::nullopt);
 }
 
 TEST(SpscQueue, PushMakesTopAvailable) {
@@ -50,7 +50,7 @@ TEST(SpscQueue, TryPopReturnsOldestElement) {
     q.push(1);
     q.push(2);
     int val = 0;
-    ASSERT_TRUE(q.try_pop(val));
+    ASSERT_TRUE(q.pop(val));
     EXPECT_EQ(val, 1);
 }
 
@@ -58,7 +58,7 @@ TEST(SpscQueue, PopReturnsOldestElement) {
     dsl::spsc_queue<int, 16> q;
     q.push(1);
     q.push(2);
-    EXPECT_EQ(q.pop(), 1);
+    EXPECT_EQ(q.try_pop(), 1);
 }
 
 TEST(SpscQueue, FifoOrdering) {
@@ -68,7 +68,7 @@ TEST(SpscQueue, FifoOrdering) {
     for (int i = 0; i < 16; i++) {
         ASSERT_NE(q.top(), nullptr);
         EXPECT_EQ(*q.top(), i);
-        EXPECT_EQ(q.pop(), i);
+        EXPECT_EQ(q.try_pop(), i);
     }
     EXPECT_EQ(q.top(), nullptr);
 }
@@ -82,7 +82,7 @@ TEST(SpscQueue, PushPopAcrossWrapBoundary) {
             ASSERT_TRUE(q.push(round * 4 + i));
         // drain
         for (int i = 0; i < 4; i++)
-            EXPECT_EQ(q.pop(), round * 4 + i);
+            EXPECT_EQ(q.try_pop(), round * 4 + i);
     }
 }
 
@@ -133,10 +133,10 @@ TEST(SpscQueue, ProducerConsumerThreads) {
         [&] {
             std::string pop;
             while (!complete.load(std::memory_order_acquire)) {
-                if (q.try_pop(pop)) popped.push_back(pop);
+                if (q.pop(pop)) popped.push_back(pop);
             }
             // Drain anything remaining
-            while (q.try_pop(pop)) popped.push_back(pop);
+            while (q.pop(pop)) popped.push_back(pop);
         }
     };
     t1.join();
