@@ -4,28 +4,30 @@
 #include <gtest/gtest.h>
 #include "fixed_size_pool_resource.h"
 
-// Concrete sizes for testing
-using SmallPool = dsl::fixed_size_pool_resource_bench<16, 4>; // 16-byte chunks, 4 per block
+namespace dsl::test::memory {
 
-TEST(PoolAllocator, AllocateReturnsNonNull) {
+// Concrete sizes for testing
+using SmallPool = dsl::fixed_size_pool_resource<16, 4>; // 16-byte chunks, 4 per block
+
+TEST(FixedSizePoolResource, AllocateReturnsNonNull) {
     SmallPool pool;
     void *    p = pool.allocate(16, alignof(std::max_align_t));
     ASSERT_NE(p, nullptr);
 }
 
-TEST(PoolAllocator, AllocateIsAligned) {
-    dsl::fixed_size_pool_resource_bench<sizeof(int), 4, 16> pool;
+TEST(FixedSizePoolResource, AllocateIsAligned) {
+    dsl::fixed_size_pool_resource<sizeof(int), 4, 16> pool;
     void *                                            p = pool.allocate(16);
     EXPECT_EQ(reinterpret_cast<uintptr_t>(p) % 16, 0);
 }
 
-TEST(PoolAllocator, CanAllocateDifferentAllignment) {
-    dsl::fixed_size_pool_resource_bench<sizeof(int), 4, 4> pool1;
+TEST(FixedSizePoolResource, CanAllocateDifferentAllignment) {
+    dsl::fixed_size_pool_resource<sizeof(int), 4, 4> pool1;
     void *                                           p1 = pool1.allocate(8, 4);
     ASSERT_NE(p1, nullptr);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(p1) % 4, 0);
 
-    dsl::fixed_size_pool_resource_bench<sizeof(int), 4, 8> pool2;
+    dsl::fixed_size_pool_resource<sizeof(int), 4, 8> pool2;
     void *                                           p2 = pool2.allocate(4, 8);
     ASSERT_NE(p2, nullptr);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(p2) % 8, 0); // satisfies requested alignment
@@ -34,12 +36,12 @@ TEST(PoolAllocator, CanAllocateDifferentAllignment) {
 }
 
 
-TEST(PoolAllocator, GrowthDoesNotInvalidate) {
+TEST(FixedSizePoolResource, GrowthDoesNotInvalidate) {
     constexpr size_t chunk_size       = 16;
     constexpr size_t chunks_per_block = 2;
     constexpr size_t alignment        = alignof(std::max_align_t);
 
-    dsl::fixed_size_pool_resource_bench<chunk_size, chunks_per_block> pool;
+    dsl::fixed_size_pool_resource<chunk_size, chunks_per_block> pool;
 
     // fill first block (2 chunks)
     auto *ptr1 = static_cast<char *>(pool.allocate(chunk_size, alignment));
@@ -65,7 +67,7 @@ TEST(PoolAllocator, GrowthDoesNotInvalidate) {
     EXPECT_EQ(reinterpret_cast<uintptr_t>(ptr3) % alignment, 0);
 }
 
-TEST(PoolAllocator, DeallocateAllowsReuse) {
+TEST(FixedSizePoolResource, DeallocateAllowsReuse) {
     SmallPool pool;
     auto *    ptr1 = static_cast<char *>(pool.allocate(16));
     std::memcpy(ptr1, "0123456789", 10);
@@ -78,7 +80,7 @@ TEST(PoolAllocator, DeallocateAllowsReuse) {
     EXPECT_STREQ(ptr1, "9876543210");
 }
 
-TEST(PoolAllocator, DeallocateUsesPreviousFree) {
+TEST(FixedSizePoolResource, DeallocateUsesPreviousFree) {
     SmallPool pool;
     // allocate twice within same blocks
     auto *ptr1 = static_cast<char *>(pool.allocate(8));
@@ -94,8 +96,8 @@ TEST(PoolAllocator, DeallocateUsesPreviousFree) {
     EXPECT_EQ(ptr2, static_cast<char*>(pool.allocate(8)));
 }
 
-TEST(PoolAllocator, DeallocateAcrossBlocks) {
-    dsl::fixed_size_pool_resource_bench<16, 2> pool; // 2 chunks per block — easy to force growth
+TEST(FixedSizePoolResource, DeallocateAcrossBlocks) {
+    dsl::fixed_size_pool_resource<16, 2> pool; // 2 chunks per block — easy to force growth
 
     auto *p1 = pool.allocate(16); // block 1, chunk 0
     auto *p2 = pool.allocate(16); // block 1, chunk 1
@@ -120,12 +122,12 @@ TEST(PoolAllocator, DeallocateAcrossBlocks) {
     EXPECT_TRUE(r2_reused) << "Expected a previously freed chunk";
 }
 
-TEST(PoolAllocator, UseAllocatorInPmrContainer) {
-    dsl::fixed_size_pool_resource_bench<10024, 16> pool;
+TEST(FixedSizePoolResource, UseAllocatorInPmrContainer) {
+    dsl::fixed_size_pool_resource<10024, 16> pool;
     std::pmr::vector<int>                    v{&pool};
     for (int i = 0; i < 100; i++) v.push_back(i);
     for (int i = 0; i < 100; i++)
         EXPECT_EQ(v[i], i);
 }
 
-
+} // namespace dsl::test::memory
