@@ -1,13 +1,8 @@
-include(FetchContent)
+# Boost
+find_package(Boost REQUIRED)
 
-FetchContent_Declare(
-        googlebenchmark
-        GIT_REPOSITORY https://github.com/google/benchmark.git
-        GIT_TAG v1.8.3
-)
-
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googlebenchmark)
+# Google Benchmark
+find_package(benchmark REQUIRED)
 
 add_executable(core_benchmarks
         fixed_size_pool_resource_bench.cpp
