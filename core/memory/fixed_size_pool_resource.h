@@ -32,13 +32,13 @@ template<size_t ChunkSize, size_t ChunksPerBlock, size_t Alignment = alignof(std
     requires (PowerOfTwo<Alignment> && ChunksPerBlock > 0)
 class fixed_size_pool_resource : public std::pmr::memory_resource {
 public:
-    struct PoolOptions {
+    struct pool_options {
         static constexpr size_t chunk_size       = align_up(std::max(ChunkSize, sizeof(void *)), Alignment);
         static constexpr size_t chunks_per_block = ChunksPerBlock;
         static constexpr size_t alignment        = Alignment;
     };
 
-    static constexpr PoolOptions options;
+    static constexpr pool_options options;
 
 private:
     static constexpr size_t block_size = options.chunks_per_block * options.chunk_size;

@@ -1,11 +1,5 @@
-//
-// Created by Dominic Kloecker on 02/04/2026.
-//
-#include <random>
 #include <benchmark/benchmark.h>
 #include <thread>
-
-#include <boost/lockfree/spsc_queue.hpp>
 
 #include "spsc_queue.h"
 
@@ -21,224 +15,125 @@ struct ComplexObject {
     std::array<std::byte, 256> data2{};
 };
 
-template<typename T, size_t Capacity>
-struct BoostQueueFactory {
-    using value_type                 = T;
-    using queue_type                 = boost::lockfree::spsc_queue<T>;
-    static constexpr size_t capacity = Capacity;
-
-    static queue_type create() { return queue_type{Capacity}; }
-    static bool       pop(queue_type &q, T &out) { return q.pop(out); }
-    static bool       push(queue_type &q, const T &val) { return q.push(val); }
-};
-
-template<typename T, size_t Capacity>
-struct DslQueueFactory {
-    using value_type                 = T;
-    using queue_type                 = dsl::spsc_queue<T, Capacity>;
-    static constexpr size_t capacity = Capacity;
-
-    static queue_type create() { return queue_type{}; }
-    static bool       pop(queue_type &q, T &out) { return q.pop(out); }
-    static bool       push(queue_type &q, const T &val) { return q.push(val); }
-};
-
-
-template<typename Factory>
-static void BM_SinglePush(benchmark::State &state) {
-    auto q = Factory::create();
-    for (auto _: state) {
-        Factory::push(q, {});
-
-        state.PauseTiming();
-        typename Factory::value_type out;
-        Factory::pop(q, out);
-        state.ResumeTiming();
-    }
-}
-
-BENCHMARK_TEMPLATE(BM_SinglePush, DslQueueFactory<SimpleObject, 8>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SinglePush, DslQueueFactory<ComplexObject, 8>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SinglePush, BoostQueueFactory<SimpleObject, 8>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SinglePush, BoostQueueFactory<ComplexObject, 8>)->MinWarmUpTime(1.0);
-
-template<typename Factory>
-static void BM_SinglePop(benchmark::State &state) {
-    auto q = Factory::create();
-    for (auto _: state) {
-        state.PauseTiming();
-        Factory::push(q, {});
-        state.ResumeTiming();
-
-        typename Factory::value_type out;
-        Factory::pop(q, out);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-BENCHMARK_TEMPLATE(BM_SinglePop, DslQueueFactory<SimpleObject, 8>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SinglePop, DslQueueFactory<ComplexObject, 8>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SinglePop, BoostQueueFactory<SimpleObject, 8>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SinglePop, BoostQueueFactory<ComplexObject, 8>)->MinWarmUpTime(1.0);
-
-template<typename Factory>
-static void BM_PushOntoFullQueue(benchmark::State &state) {
-    auto q = Factory::create();
-    while (Factory::push(q, {})) {
-    }
-    typename Factory::value_type out;
-    Factory::pop(q, out);
+template<typename T>
+static void BM_PushPop(benchmark::State &state) {
+    constexpr size_t         batch = 10'000;
+    dsl::spsc_queue<T, 1024> q;
+    T                        out;
 
     for (auto _: state) {
-        Factory::push(q, {});
-
-        state.PauseTiming();
-        Factory::pop(q, out);
-        state.ResumeTiming();
-    }
-}
-
-BENCHMARK_TEMPLATE(BM_PushOntoFullQueue, DslQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_PushOntoFullQueue, DslQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_PushOntoFullQueue, BoostQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_PushOntoFullQueue, BoostQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(1.0);
-
-template<typename Factory>
-static void BM_PopFromFullQueue(benchmark::State &state) {
-    auto q = Factory::create();
-    while (Factory::push(q, {})) {
-    }
-
-    for (auto _: state) {
-        typename Factory::value_type out;
-        Factory::pop(q, out);
-        benchmark::DoNotOptimize(out);
-
-        state.PauseTiming();
-        Factory::push(q, {});
-        state.ResumeTiming();
-    }
-}
-
-BENCHMARK_TEMPLATE(BM_PopFromFullQueue, DslQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_PopFromFullQueue, DslQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_PopFromFullQueue, BoostQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_PopFromFullQueue, BoostQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(1.0);
-
-template<typename Factory>
-static void BM_SustainedPushPop(benchmark::State &state) {
-    auto q = Factory::create();
-    while (Factory::push(q, {})) {
-    }
-    typename Factory::value_type out;
-    Factory::pop(q, out);
-
-    constexpr size_t ops_per_iter = 1'000'000;
-    for (auto _: state) {
-        for (size_t i = 0; i < ops_per_iter; i++) {
-            Factory::push(q, {});
-            Factory::pop(q, out);
+        for (size_t i = 0; i < batch; i++) {
+            q.push({});
+            q.pop(out);
         }
         benchmark::DoNotOptimize(out);
     }
-    state.SetItemsProcessed(state.iterations() * ops_per_iter);
+    state.SetItemsProcessed(state.iterations() * batch);
 }
 
-BENCHMARK_TEMPLATE(BM_SustainedPushPop, DslQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SustainedPushPop, DslQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SustainedPushPop, BoostQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_SustainedPushPop, BoostQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_PushPop, SimpleObject)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_PushPop, ComplexObject)->MinWarmUpTime(1.0);
 
-template<typename Factory>
+template<typename T>
+static void BM_PushPopNearFull(benchmark::State &state) {
+    constexpr size_t         batch = 10'000;
+    dsl::spsc_queue<T, 1024> q;
+    while (q.push({})) {}
+    T out;
+    q.pop(out);
+
+    for (auto _: state) {
+        for (size_t i = 0; i < batch; i++) {
+            q.push({});
+            q.pop(out);
+        }
+        benchmark::DoNotOptimize(out);
+    }
+    state.SetItemsProcessed(state.iterations() * batch);
+}
+
+BENCHMARK_TEMPLATE(BM_PushPopNearFull, SimpleObject)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_PushPopNearFull, ComplexObject)->MinWarmUpTime(1.0);
+
+template<typename T>
 static void BM_QueueFill(benchmark::State &state) {
-    auto q = Factory::create();
-    for (auto _: state) {
-        while (Factory::push(q, {})) {
-        }
+    constexpr size_t         cap = dsl::spsc_queue<T, 8192>::capacity;
+    dsl::spsc_queue<T, 8192> q;
+    T                        out;
 
-        state.PauseTiming();
-        typename Factory::value_type out;
-        while (Factory::pop(q, out)) {
-        }
-        state.ResumeTiming();
+    for (auto _: state) {
+        for (size_t i = 0; i < cap; i++)
+            q.push({});
+
+        for (size_t i = 0; i < cap; i++)
+            q.pop(out);
+        benchmark::DoNotOptimize(out);
     }
-    state.SetItemsProcessed(state.iterations() * Factory::capacity);
+    state.SetItemsProcessed(state.iterations() * cap);
 }
 
-BENCHMARK_TEMPLATE(BM_QueueFill, DslQueueFactory<SimpleObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_QueueFill, DslQueueFactory<ComplexObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_QueueFill, BoostQueueFactory<SimpleObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_QueueFill, BoostQueueFactory<ComplexObject, 8192>)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_QueueFill, SimpleObject)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_QueueFill, ComplexObject)->MinWarmUpTime(1.0);
 
-template<typename Factory>
+template<typename T>
 static void BM_QueueDrain(benchmark::State &state) {
-    auto q = Factory::create();
-    for (auto _: state) {
-        state.PauseTiming();
-        while (Factory::push(q, {})) {
-        }
-        state.ResumeTiming();
+    constexpr size_t         cap = dsl::spsc_queue<T, 8192>::capacity;
+    dsl::spsc_queue<T, 8192> q;
+    T                        out;
 
-        typename Factory::value_type out;
-        while (Factory::pop(q, out)) {
-        }
+    for (auto _: state) {
+        for (size_t i = 0; i < cap; i++)
+            q.push({});
+
+        for (size_t i = 0; i < cap; i++)
+            q.pop(out);
         benchmark::DoNotOptimize(out);
     }
-    state.SetItemsProcessed(state.iterations() * Factory::capacity);
+    state.SetItemsProcessed(state.iterations() * cap);
 }
 
-BENCHMARK_TEMPLATE(BM_QueueDrain, DslQueueFactory<SimpleObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_QueueDrain, DslQueueFactory<ComplexObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_QueueDrain, BoostQueueFactory<SimpleObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_QueueDrain, BoostQueueFactory<ComplexObject, 8192>)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_QueueDrain, SimpleObject)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_QueueDrain, ComplexObject)->MinWarmUpTime(1.0);
 
-template<typename Factory>
+template<typename T>
 static void BM_FillAndDrain(benchmark::State &state) {
-    auto q = Factory::create();
-    for (auto _: state) {
-        while (Factory::push(q, {})) {
-        }
+    constexpr size_t         cap = dsl::spsc_queue<T, 8192>::capacity;
+    dsl::spsc_queue<T, 8192> q;
+    T                        out;
 
-        typename Factory::value_type out;
-        while (Factory::pop(q, out)) {
-        }
+    for (auto _: state) {
+        for (size_t i = 0; i < cap; i++)
+            q.push({});
+        for (size_t i = 0; i < cap; i++)
+            q.pop(out);
         benchmark::DoNotOptimize(out);
     }
-    state.SetItemsProcessed(state.iterations() * Factory::capacity * 2);
+    state.SetItemsProcessed(state.iterations() * cap * 2);
 }
 
-BENCHMARK_TEMPLATE(BM_FillAndDrain, DslQueueFactory<SimpleObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_FillAndDrain, DslQueueFactory<ComplexObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_FillAndDrain, BoostQueueFactory<SimpleObject, 8192>)->MinWarmUpTime(1.0);
-BENCHMARK_TEMPLATE(BM_FillAndDrain, BoostQueueFactory<ComplexObject, 8192>)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_FillAndDrain, SimpleObject)->MinWarmUpTime(1.0);
+BENCHMARK_TEMPLATE(BM_FillAndDrain, ComplexObject)->MinWarmUpTime(1.0);
 
-template<typename Factory>
+template<typename T>
 static void BM_ProducerConsumer(benchmark::State &state) {
-    auto                         q = Factory::create();
-    std::atomic_bool             done{false};
-    typename Factory::value_type out;
+    dsl::spsc_queue<T, 1024> q;
+    std::atomic_bool         done{false};
+    T                        out;
 
     std::thread consumer([&] {
         while (!done.load(std::memory_order_acquire)) {
-            Factory::pop(q, out);
+            q.pop(out);
         }
-        // Drain remaining
-        while (Factory::pop(q, out)) {
-        }
+        while (q.pop(out)) {}
     });
 
     for (auto _: state) {
-        // Spin until push succeeds (queue might be full if consumer is slow)
-        while (!Factory::push(q, {})) {
-        }
+        while (!q.push({})) {}
     }
 
     done.store(true, std::memory_order_release);
     consumer.join();
 }
 
-BENCHMARK_TEMPLATE(BM_ProducerConsumer, DslQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(0.5);
-BENCHMARK_TEMPLATE(BM_ProducerConsumer, DslQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(0.5);
-BENCHMARK_TEMPLATE(BM_ProducerConsumer, BoostQueueFactory<SimpleObject, 1024>)->MinWarmUpTime(0.5);
-BENCHMARK_TEMPLATE(BM_ProducerConsumer, BoostQueueFactory<ComplexObject, 1024>)->MinWarmUpTime(0.5);
-
+BENCHMARK_TEMPLATE(BM_ProducerConsumer, SimpleObject)->MinWarmUpTime(0.5);
+BENCHMARK_TEMPLATE(BM_ProducerConsumer, ComplexObject)->MinWarmUpTime(0.5);
