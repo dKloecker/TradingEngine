@@ -28,20 +28,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cache FetchContent
-        uses: actions/cache@v4
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
         with:
-          path: build/_deps
-          key: fetchcontent-${{ matrix.compiler }}-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            fetchcontent-${{ matrix.compiler }}-
+          vcpkgGitCommitId: cb2981c4e03d421fa03b9bb5044cd1986180e7e4
 
       - name: Configure
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DTRADING_BUILD_TESTING=ON \
-            -DFETCHCONTENT_QUIET=OFF
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build build --parallel

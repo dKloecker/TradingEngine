@@ -5,6 +5,8 @@
 #include <list>
 #include <memory>
 
+#include "util.h"
+
 namespace dsl {
 constexpr size_t align_up(const size_t size, const size_t alignment) {
     return ((size + alignment - 1) / alignment) * alignment;
@@ -27,7 +29,7 @@ constexpr size_t align_up(const size_t size, const size_t alignment) {
  * requested Alignment.
  */
 template<size_t ChunkSize, size_t ChunksPerBlock, size_t Alignment = alignof(std::max_align_t)>
-    requires (Alignment > 0 && (Alignment & (Alignment - 1)) == 0 && ChunksPerBlock > 0)
+    requires (PowerOfTwo<Alignment> && ChunksPerBlock > 0)
 class fixed_size_pool_resource_bench : public std::pmr::memory_resource {
 public:
     struct pool_options {
