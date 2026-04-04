@@ -26,7 +26,7 @@ void AsyncLogger<QS, MB>::start_up() {
         std::filesystem::create_directories(path.parent_path());
     }
     // Open Log file handler with the requested buffer size
-    log_file_.rdbuf()->pubsetbuf(stream_buffer_, BUFFER_SIZE);
+    log_file_.rdbuf()->pubsetbuf(stream_buffer_, STREAM_BUFFER_SIZE);
     log_file_.open(path, std::ios::out | std::ios::app);
     if (!log_file_.is_open()) {
         throw std::runtime_error("AsyncLogger: failed to open log file: " + path.string());
@@ -77,11 +77,11 @@ void AsyncLogger<QS, MB>::log(const LogLevel              level,
 
 
     // TODO: Use function pointer here after init for logging policy to avoid runtime check
-    if (config_.back_preassure_policy == QueueFullPolicy::e_BLOCK) {
+    if (config_.back_preassure_policy == BackPreassurePolicy::e_BLOCK) {
         while (!queue_.push(record)) {}
-    } else if (config_.back_preassure_policy == QueueFullPolicy::e_DROP) {
+    } else if (config_.back_preassure_policy == BackPreassurePolicy::e_DROP) {
         queue_.push(record);
-    } else if (config_.back_preassure_policy == QueueFullPolicy::e_DROP_BELOW_LEVEL) {
+    } else if (config_.back_preassure_policy == BackPreassurePolicy::e_DROP_BELOW_LEVEL) {
         // Attempt one publish and return
         if (record.level > config_.drop_threshold) {
             queue_.push(record);

@@ -90,7 +90,7 @@ TEST_F(AsyncLoggerTest, LogsAreTruncatedIfTooLarge) {
     };
 
     // Build a message longer than max message length
-    std::string long_message(MAX_MESSAGE_LENGTH + 100, 'X');
+    std::string long_message(Logger::MAX_MESSAGE_LENGTH + 100, 'X');
 
     AsyncLogger<>::instance().init(cfg);
     AsyncLogger<>::instance().info(long_message);
@@ -100,8 +100,8 @@ TEST_F(AsyncLoggerTest, LogsAreTruncatedIfTooLarge) {
     std::string   line;
     std::getline(log_file, line);
 
-    EXPECT_EQ(line.length(), MAX_MESSAGE_LENGTH);
-    EXPECT_EQ(line, std::string(MAX_MESSAGE_LENGTH, 'X'));
+    EXPECT_EQ(line.length(), Logger::MAX_MESSAGE_LENGTH);
+    EXPECT_EQ(line, std::string(Logger::MAX_MESSAGE_LENGTH, 'X'));
 }
 
 TEST_F(AsyncLoggerTest, LogsWrittenAfterBufferFlush) {
@@ -160,10 +160,10 @@ TEST_F(AsyncLoggerTest, LogsBelowMinLevelDropped) {
 TEST_F(AsyncLoggerTest, DropQueuePolicyDrops) {
     using SmallLogger = AsyncLogger<4, 32>;
     const LogConfig cfg{
-        .min_level         = LogLevel::e_DEBUG,
-        .log_file          = log_path,
-        .format            = "%m",
-        .back_preassure_policy = QueueFullPolicy::e_DROP
+        .min_level             = LogLevel::e_DEBUG,
+        .log_file              = log_path,
+        .format                = "%m",
+        .back_preassure_policy = BackPreassurePolicy::e_DROP
     };
 
     SmallLogger::instance().init(cfg);
@@ -191,11 +191,11 @@ TEST_F(AsyncLoggerTest, DropBelowLevelDrops) {
     using SmallLogger = AsyncLogger<4, 32>;
 
     const LogConfig cfg{
-        .min_level         = LogLevel::e_DEBUG,
-        .log_file          = log_path,
-        .format            = "%L %m",
-        .back_preassure_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL,
-        .drop_threshold    = LogLevel::e_WARN
+        .min_level             = LogLevel::e_DEBUG,
+        .log_file              = log_path,
+        .format                = "%L %m",
+        .back_preassure_policy = BackPreassurePolicy::e_DROP_BELOW_LEVEL,
+        .drop_threshold        = LogLevel::e_WARN
     };
 
     SmallLogger::instance().init(cfg);
@@ -220,11 +220,11 @@ TEST_F(AsyncLoggerTest, DropBelowLevelLogsAboveThreshold) {
     using SmallLogger = AsyncLogger<4, 32>;
 
     const LogConfig cfg{
-        .min_level         = LogLevel::e_DEBUG,
-        .log_file          = log_path,
-        .format            = "%L %m",
-        .back_preassure_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL,
-        .drop_threshold    = LogLevel::e_WARN
+        .min_level             = LogLevel::e_DEBUG,
+        .log_file              = log_path,
+        .format                = "%L %m",
+        .back_preassure_policy = BackPreassurePolicy::e_DROP_BELOW_LEVEL,
+        .drop_threshold        = LogLevel::e_WARN
     };
 
     SmallLogger::instance().init(cfg);
@@ -250,10 +250,10 @@ TEST_F(AsyncLoggerTest, BlockPolicyBlocksUntilProcessed) {
     using SmallLogger = AsyncLogger<4, 32>;
 
     const LogConfig cfg{
-        .min_level         = LogLevel::e_DEBUG,
-        .log_file          = log_path,
-        .format            = "%m",
-        .back_preassure_policy = QueueFullPolicy::e_BLOCK
+        .min_level             = LogLevel::e_DEBUG,
+        .log_file              = log_path,
+        .format                = "%m",
+        .back_preassure_policy = BackPreassurePolicy::e_BLOCK
     };
 
     SmallLogger::instance().init(cfg);

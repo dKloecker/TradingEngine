@@ -6,53 +6,67 @@
 #define TRADING_LOGGER_UTILS_H
 
 namespace dsl {
-// TODO: Come up with better implementation for this
-inline void write_log(std::ofstream &file, const std::string &format, const LogRecord &record) {
+// TODO: Refactor this into cleaner separate implementation
+inline void write_log(std::ostream &out, const std::string &format, const LogRecord &record) {
     const char *p = format.c_str();
     while (*p) {
         if (*p == '%' && *(p + 1)) {
             switch (*(p + 1)) {
                 case 'T': {
-                    // TODO: Add Time
-                    file << "TIMESTAMP";
+                    const auto time = std::chrono::system_clock::to_time_t(record.time_stamp);
+                    const auto us   = std::chrono::duration_cast<std::chrono::microseconds>(
+                                        record.time_stamp.time_since_epoch()) % std::chrono::seconds(1);
+
+                    std::tm buf{};
+                    gmtime_r(&time, &buf);
+
+                    char       time_str[32];
+                    const auto len = std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &buf);
+                    out.write(time_str, len);
+                    out << '.' << std::setfill('0') << std::setw(6) << us.count();
                     break;
                 }
                 case 'L': {
-                    file << to_string(record.level);
+                    out << to_string(record.level);
                     break;
                 }
                 case 'm': {
-                    file.write(record.message, record.message_length);
+                    out.write(record.message, record.message_length);
                     break;
                 }
                 case 'f': {
-                    file << record.location.file_name();
+                    out << record.location.file_name();
                     break;
                 }
                 case 'l': {
-                    file << record.location.line();
+                    out << record.location.line();
                     break;
                 }
                 case 'F': {
-                    file << record.location.function_name();
+                    // TODO: Better way of doing this? Output is otherwise too long at the moment
+                    const char *file_name = record.location.file_name();
+                    if (const char *last_slash = std::strrchr(file_name, '/')) {
+                        file_name = last_slash + 1;
+                    }
+                    out << file_name;
                     break;
                 }
                 case '%': {
-                    file << '%';
+                    out << '%';
                     break;
                 }
                 default: {
-                    file << '%' << *(p + 1);
+                    out << '%' << *(p + 1);
                     break;
                 }
             }
             p += 2;
         } else {
-            file << *p;
+            out << *p;
             ++p;
         }
     }
-    file << '\n';
+    out << '\n';
 }
 }
 #endif //TRADING_LOGGER_UTILS_H

@@ -6,6 +6,7 @@
 #define TRADING_ASYNC_LOGGER_H
 
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <source_location>
 #include <thread>
@@ -14,18 +15,22 @@
 #include "spsc_queue.h"
 
 namespace dsl {
-/// Maximum length of a log message in bytes. Messages exceeding this are truncated.
+namespace log_defaults {
 inline constexpr size_t MAX_MESSAGE_LENGTH = 256;
+inline constexpr size_t QUEUE_CAPACITY     = 512;
+inline constexpr size_t FLUSH_THRESHOLD    = 32;
+}
+
 
 /**
  * @brief A single log entry to be enqueued and written by the consumer thread
  */
 struct LogRecord {
-    LogLevel             level                       = LogLevel::e_INFO;
-    size_t               message_length              = 0;
-    char                 message[MAX_MESSAGE_LENGTH] = {};
-    std::source_location location{};
-    // TODO: timestamp
+    LogLevel                                           level                                     = LogLevel::e_INFO;
+    size_t                                             message_length                            = 0;
+    char                                               message[log_defaults::MAX_MESSAGE_LENGTH] = {};
+    std::source_location                               location{};
+    std::chrono::time_point<std::chrono::system_clock> time_stamp = std::chrono::system_clock::now();
 };
 
 /**
@@ -50,7 +55,7 @@ struct LogConfig {
     std::string format = "%T [%L] %f:%l (%F) %m";
 
 
-    QueueFullPolicy back_preassure_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL;
+    BackPreassurePolicy back_preassure_policy = BackPreassurePolicy::e_DROP_BELOW_LEVEL;
 
     /**
      * Threshold used by @c e_DROP_BELOW_LEVEL policy.
@@ -67,12 +72,13 @@ struct LogConfig {
  * written to a log file by a dedicated consumer thread.
  * The output stream is buffered, but @c FATAL and @c ERROR records trigger an immediate flush.
  *
- * @tparam QueueSize     Capacity of the underlying SPSC queue
- * @tparam MessageBuffer Number of messages worth of stream buffer space.
+ * @tparam QueueCapacity     Capacity of the underlying SPSC queue
+ * @tparam FlushThreshold    Number of messages worth of stream buffer space.
  */
-template<size_t QueueSize = 512, size_t MessageBuffer = 32>
+template<size_t QueueCapacity = log_defaults::QUEUE_CAPACITY,
+    size_t FlushThreshold = log_defaults::FLUSH_THRESHOLD>
 class AsyncLogger {
-    static constexpr size_t BUFFER_SIZE = MessageBuffer * MAX_MESSAGE_LENGTH;
+    static constexpr size_t STREAM_BUFFER_SIZE = FlushThreshold * log_defaults::MAX_MESSAGE_LENGTH;
 
     // TODO: Add Status for logger (i.e. running, stopped etc) and prevent usage if not started
     LogConfig config_{};
@@ -80,9 +86,9 @@ class AsyncLogger {
     std::thread      consumer_thread_{};
     std::stop_source stop_{};
 
-    char                             stream_buffer_[BUFFER_SIZE]{};
-    spsc_queue<LogRecord, QueueSize> queue_{};
-    std::ofstream                    log_file_{};
+    char                                 stream_buffer_[STREAM_BUFFER_SIZE]{};
+    spsc_queue<LogRecord, QueueCapacity> queue_{};
+    std::ofstream                        log_file_{};
 
     AsyncLogger() = default;
 
@@ -101,6 +107,10 @@ class AsyncLogger {
     void shut_down();
 
 public:
+    static constexpr size_t QUEUE_CAPACITY     = QueueCapacity;
+    static constexpr size_t FLUSH_THRESHOLD    = FlushThreshold;
+    static constexpr size_t MAX_MESSAGE_LENGTH = log_defaults::MAX_MESSAGE_LENGTH;
+
     ~AsyncLogger();
 
     AsyncLogger(const AsyncLogger &) = delete;
