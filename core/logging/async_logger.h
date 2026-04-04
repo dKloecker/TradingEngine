@@ -55,7 +55,7 @@ struct LogConfig {
     std::string format = "%T [%L] %f:%l (%F) %m";
 
 
-    BackPreassurePolicy back_preassure_policy = BackPreassurePolicy::e_DROP_BELOW_LEVEL;
+    BackPressurePolicy back_pressure_policy = BackPressurePolicy::e_DROP_BELOW_LEVEL;
 
     /**
      * Threshold used by @c e_DROP_BELOW_LEVEL policy.

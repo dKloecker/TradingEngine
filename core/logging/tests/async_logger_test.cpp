@@ -163,10 +163,10 @@ TEST_F(AsyncLoggerTest, LogsBelowMinLevelDropped) {
 TEST_F(AsyncLoggerTest, DropQueuePolicyDrops) {
     using SmallLogger = AsyncLogger<4, 32>;
     const LogConfig cfg{
-        .min_level             = LogLevel::e_DEBUG,
-        .log_file              = log_path,
-        .format                = "%m",
-        .back_preassure_policy = BackPreassurePolicy::e_DROP
+        .min_level            = LogLevel::e_DEBUG,
+        .log_file             = log_path,
+        .format               = "%m",
+        .back_pressure_policy = BackPressurePolicy::e_DROP
     };
 
     SmallLogger::instance().init(cfg);
@@ -194,11 +194,11 @@ TEST_F(AsyncLoggerTest, DropBelowLevelDrops) {
     using SmallLogger = AsyncLogger<4, 32>;
 
     const LogConfig cfg{
-        .min_level             = LogLevel::e_DEBUG,
-        .log_file              = log_path,
-        .format                = "%L %m",
-        .back_preassure_policy = BackPreassurePolicy::e_DROP_BELOW_LEVEL,
-        .drop_threshold        = LogLevel::e_WARN
+        .min_level            = LogLevel::e_DEBUG,
+        .log_file             = log_path,
+        .format               = "%L %m",
+        .back_pressure_policy = BackPressurePolicy::e_DROP_BELOW_LEVEL,
+        .drop_threshold       = LogLevel::e_WARN
     };
 
     SmallLogger::instance().init(cfg);
@@ -223,11 +223,11 @@ TEST_F(AsyncLoggerTest, DropBelowLevelLogsAboveThreshold) {
     using SmallLogger = AsyncLogger<4, 32>;
 
     const LogConfig cfg{
-        .min_level             = LogLevel::e_DEBUG,
-        .log_file              = log_path,
-        .format                = "%L %m",
-        .back_preassure_policy = BackPreassurePolicy::e_DROP_BELOW_LEVEL,
-        .drop_threshold        = LogLevel::e_WARN
+        .min_level            = LogLevel::e_DEBUG,
+        .log_file             = log_path,
+        .format               = "%L %m",
+        .back_pressure_policy = BackPressurePolicy::e_DROP_BELOW_LEVEL,
+        .drop_threshold       = LogLevel::e_WARN
     };
 
     SmallLogger::instance().init(cfg);
@@ -253,10 +253,10 @@ TEST_F(AsyncLoggerTest, BlockPolicyBlocksUntilProcessed) {
     using SmallLogger = AsyncLogger<4, 32>;
 
     const LogConfig cfg{
-        .min_level             = LogLevel::e_DEBUG,
-        .log_file              = log_path,
-        .format                = "%m",
-        .back_preassure_policy = BackPreassurePolicy::e_BLOCK
+        .min_level            = LogLevel::e_DEBUG,
+        .log_file             = log_path,
+        .format               = "%m",
+        .back_pressure_policy = BackPressurePolicy::e_BLOCK
     };
 
     SmallLogger::instance().init(cfg);

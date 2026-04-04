@@ -77,11 +77,11 @@ void AsyncLogger<QS, MB>::log(const LogLevel              level,
 
 
     // TODO: Use function pointer here after init for logging policy to avoid runtime check
-    if (config_.back_preassure_policy == BackPreassurePolicy::e_BLOCK) {
+    if (config_.back_pressure_policy == BackPressurePolicy::e_BLOCK) {
         while (!queue_.push(record)) {}
-    } else if (config_.back_preassure_policy == BackPreassurePolicy::e_DROP) {
+    } else if (config_.back_pressure_policy == BackPressurePolicy::e_DROP) {
         queue_.push(record);
-    } else if (config_.back_preassure_policy == BackPreassurePolicy::e_DROP_BELOW_LEVEL) {
+    } else if (config_.back_pressure_policy == BackPressurePolicy::e_DROP_BELOW_LEVEL) {
         // Attempt one publish and return
         if (record.level > config_.drop_threshold) {
             queue_.push(record);

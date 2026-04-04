@@ -86,7 +86,7 @@ static void BM_BurstBlocking(benchmark::State &state) {
     Logger::instance().init({
         .min_level             = LogLevel::e_DEBUG,
         .log_file              = std::string(LOG_DIR) + "BM_BurstBlocking.log",
-        .back_preassure_policy = BackPreassurePolicy::e_BLOCK
+        .back_pressure_policy = BackPressurePolicy::e_BLOCK
     });
 
     constexpr size_t number_of_messages = 1000;
@@ -105,9 +105,9 @@ static void BM_BurstBlocking(benchmark::State &state) {
 BENCHMARK(BM_BurstBlocking);
 
 static void BM_BurstPolicyComparison(benchmark::State &state) {
-    state.SetLabel(std::string(to_string(static_cast<BackPreassurePolicy>(state.range(1)))));
+    state.SetLabel(std::string(to_string(static_cast<BackPressurePolicy>(state.range(1)))));
     const auto num_messages = state.range(0);
-    const auto policy       = static_cast<BackPreassurePolicy>(state.range(1));
+    const auto policy       = static_cast<BackPressurePolicy>(state.range(1));
 
     for (auto _: state) {
         state.PauseTiming();
@@ -115,7 +115,7 @@ static void BM_BurstPolicyComparison(benchmark::State &state) {
         Logger::instance().init({
             .min_level             = LogLevel::e_INFO,
             .log_file              = std::string(LOG_DIR) + "BM_BurstPolicyComparison.log",
-            .back_preassure_policy = policy,
+            .back_pressure_policy = policy,
             .drop_threshold        = LogLevel::e_WARN
         });
         state.ResumeTiming();
