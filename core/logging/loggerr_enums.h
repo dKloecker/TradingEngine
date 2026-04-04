@@ -1,0 +1,36 @@
+//
+// Created by Dominic Kloecker on 04/04/2026.
+//
+
+#ifndef TRADING_LOGGER_ENUMS_H
+#define TRADING_LOGGER_ENUMS_H
+#include <cstdint>
+
+enum class LogLevel : std::uint8_t {
+    e_FATAL = 0,
+    e_ERROR = 1,
+    e_WARN  = 2,
+    e_INFO  = 3,
+    e_DEBUG = 4
+};
+
+constexpr std::string_view to_string(const LogLevel level) {
+    switch (level) {
+        case LogLevel::e_FATAL: return "FATAL";
+        case LogLevel::e_ERROR: return "ERROR";
+        case LogLevel::e_WARN: return "WARN";
+        case LogLevel::e_INFO: return "INFO";
+        case LogLevel::e_DEBUG: return "DEBUG";
+    }
+    return "";
+}
+
+/// Policy when the internal queue is full
+enum class QueueFullPolicy : std::uint8_t {
+    e_BLOCK,           // Block logging until queue has space
+    e_DROP,            // Silently drop the message
+    e_DROP_BELOW_LEVEL // Drop if message level < drop_threshold
+};
+
+
+#endif //TRADING_LOGGER_ENUMS_H
