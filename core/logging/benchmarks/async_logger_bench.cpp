@@ -84,8 +84,8 @@ BENCHMARK(BM_FilteredOutMessages);
 static void BM_BurstBlocking(benchmark::State &state) {
     Logger::instance().reset();
     Logger::instance().init({
-        .min_level             = LogLevel::e_DEBUG,
-        .log_file              = std::string(LOG_DIR) + "BM_BurstBlocking.log",
+        .min_level            = LogLevel::e_DEBUG,
+        .log_file             = std::string(LOG_DIR) + "BM_BurstBlocking.log",
         .back_pressure_policy = BackPressurePolicy::e_BLOCK
     });
 
@@ -113,10 +113,10 @@ static void BM_BurstPolicyComparison(benchmark::State &state) {
         state.PauseTiming();
         Logger::instance().reset();
         Logger::instance().init({
-            .min_level             = LogLevel::e_INFO,
-            .log_file              = std::string(LOG_DIR) + "BM_BurstPolicyComparison.log",
+            .min_level            = LogLevel::e_INFO,
+            .log_file             = std::string(LOG_DIR) + "BM_BurstPolicyComparison.log",
             .back_pressure_policy = policy,
-            .drop_threshold        = LogLevel::e_WARN
+            .drop_threshold       = LogLevel::e_WARN
         });
         state.ResumeTiming();
 
@@ -138,9 +138,9 @@ BENCHMARK(BM_BurstPolicyComparison)
     ->Args({1'000, 0})
     ->Args({1'000, 1})
     ->Args({1'000, 2})
-    ->Args({100'000, 0})
-    ->Args({100'000, 1})
-    ->Args({100'000, 2})
+    ->Args({10'000, 0})
+    ->Args({10'000, 1})
+    ->Args({10'000, 2})
     ->Unit(benchmark::kMicrosecond);
 }
 

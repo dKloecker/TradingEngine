@@ -8,17 +8,6 @@
 
 namespace dsl {
 template<size_t QS, size_t MB>
-void AsyncLogger<QS, MB>::init(LogConfig config) {
-    config_ = std::move(config);
-    start_up();
-}
-
-template<size_t QS, size_t MB>
-AsyncLogger<QS, MB>::~AsyncLogger() {
-    shut_down();
-}
-
-template<size_t QS, size_t MB>
 void AsyncLogger<QS, MB>::start_up() {
     status_          = LoggerStatus::e_STARTING;
     const auto &path = config_.log_file;
@@ -31,6 +20,25 @@ void AsyncLogger<QS, MB>::start_up() {
     log_file_.open(path, std::ios::out | std::ios::app);
     if (!log_file_.is_open()) {
         throw std::runtime_error("AsyncLogger: failed to open log file: " + path.string());
+    }
+
+    // Pick Handling based off desired back pressure policy
+    switch (config_.back_pressure_policy) {
+        case BackPressurePolicy::e_BLOCK: {
+            enqueue_handler_ =
+                    &enqueue_block;
+        }
+        break;
+        case BackPressurePolicy::e_DROP: {
+            enqueue_handler_ =
+                    &enqueue_drop;
+        }
+        break;
+        case BackPressurePolicy::e_DROP_BELOW_LEVEL: {
+            enqueue_handler_ =
+                    &enqueue_drop_below_level;
+        }
+        break;
     }
 
     // Launch Consumer Thread
@@ -67,6 +75,17 @@ void AsyncLogger<QS, MB>::shut_down() {
 }
 
 template<size_t QS, size_t MB>
+AsyncLogger<QS, MB>::~AsyncLogger() {
+    shut_down();
+}
+
+template<size_t QS, size_t MB>
+void AsyncLogger<QS, MB>::init(LogConfig config) {
+    config_ = std::move(config);
+    start_up();
+}
+
+template<size_t QS, size_t MB>
 void AsyncLogger<QS, MB>::log(const LogLevel              level,
                               const std::string_view      message,
                               const std::source_location &loc) {
@@ -78,21 +97,8 @@ void AsyncLogger<QS, MB>::log(const LogLevel              level,
     record.message_length = std::min(message.length(), MAX_MESSAGE_LENGTH);
     std::memcpy(record.message, message.data(), record.message_length);
     record.location = loc;
-
-
-    // TODO: Use function pointer here after init for logging policy to avoid runtime check
-    if (config_.back_pressure_policy == BackPressurePolicy::e_BLOCK) {
-        while (!queue_.push(record)) {}
-    } else if (config_.back_pressure_policy == BackPressurePolicy::e_DROP) {
-        queue_.push(record);
-    } else if (config_.back_pressure_policy == BackPressurePolicy::e_DROP_BELOW_LEVEL) {
-        // Attempt one publish and return
-        if (record.level > config_.drop_threshold) {
-            queue_.push(record);
-            return;
-        }
-        while (!queue_.push(record)) {}
-    }
+    // Enqueue onto system based on chosen Policy
+    enqueue_handler_(*this, record);
 }
 
 #ifdef TESTING

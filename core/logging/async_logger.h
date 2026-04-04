@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <source_location>
 #include <thread>
 
@@ -104,6 +105,29 @@ class AsyncLogger {
      * Flushes remaining records
      */
     void shut_down();
+
+    /**
+     * Handler for enqueuing Log Record based on Loggers configured BackPressure policy.
+     * Defaults to void function when uninitialized
+     */
+    using enqueue_fn            = void (*)(AsyncLogger &, const LogRecord &);
+    enqueue_fn enqueue_handler_ = nullptr;
+
+    static void enqueue_block(AsyncLogger &self, const LogRecord &record) {
+        while (!self.queue_.push(record)) {}
+    }
+
+    static void enqueue_drop(AsyncLogger &self, const LogRecord &record) {
+        self.queue_.push(record);
+    }
+
+    static void enqueue_drop_below_level(AsyncLogger &self, const LogRecord &record) {
+        if (record.level > self.config_.drop_threshold) {
+            self.queue_.push(record);
+            return;
+        }
+        while (!self.queue_.push(record)) {}
+    }
 
 public:
     static constexpr size_t QUEUE_CAPACITY     = QueueCapacity;
