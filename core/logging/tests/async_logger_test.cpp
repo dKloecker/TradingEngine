@@ -58,11 +58,11 @@ TEST_F(AsyncLoggerTest, LogsWrittenToFile) {
     };
 
     AsyncLogger<>::instance().init(cfg);
-    AsyncLogger<>::instance().debug("Some DEBUG Message");
-    AsyncLogger<>::instance().info("Some INFO Message");
-    AsyncLogger<>::instance().warn("Some WARNING Message");
-    AsyncLogger<>::instance().error("Some ERROR Message");
-    AsyncLogger<>::instance().fatal("Some FATAL Message");
+    LOG_DEBUG("Some DEBUG Message");
+    LOG_INFO("Some INFO Message");
+    LOG_WARN("Some WARNING Message");
+    LOG_ERROR("Some ERROR Message");
+    LOG_FATAL("Some FATAL Message");
 
     // Flush all records to disk
     AsyncLogger<>::instance().reset();
@@ -139,10 +139,10 @@ TEST_F(AsyncLoggerTest, LogsBelowMinLevelDropped) {
     };
 
     AsyncLogger<>::instance().init(cfg);
-    AsyncLogger<>::instance().debug("should be dropped");
-    AsyncLogger<>::instance().info("should also be dropped");
-    AsyncLogger<>::instance().warn("should appear");
-    AsyncLogger<>::instance().error("should also appear");
+    LOG_DEBUG("should be dropped");
+    LOG_INFO("should also be dropped");
+    LOG_WARN("should appear");
+    LOG_ERROR("should also appear");
     AsyncLogger<>::instance().reset();
 
     std::ifstream            log_file(log_path);

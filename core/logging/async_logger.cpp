@@ -1,50 +1,12 @@
 //
 // Created by Dominic Kloecker on 03/04/2026.
 //
-#include "async_logger.h"
 #include <fstream>
 
+#include "async_logger.h"
+#include "logger_utils.h"
+
 namespace dsl {
-namespace {
-// TODO: Come up with better implementation for this
-void write_log(std::ofstream &file, const std::string &format, const LogRecord &record) {
-    const char *p = format.c_str();
-
-    while (*p) {
-        if (*p == '%' && *(p + 1)) {
-            switch (*(p + 1)) {
-                case 'T': {
-                    // TODO: Add Time
-                    file << "TIMESTAMP";
-                    break;
-                }
-                case 'L': {
-                    file << to_string(record.level);
-                    break;
-                }
-                case 'm': {
-                    file.write(record.message, record.message_length);
-                    break;
-                }
-                case '%': {
-                    file << '%';
-                    break;
-                }
-                default: {
-                    file << '%' << *(p + 1);
-                    break;
-                }
-            }
-            p += 2;
-        } else {
-            file << *p;
-            ++p;
-        }
-    }
-    file << '\n';
-}
-}
-
 template<size_t QS, size_t MB>
 void AsyncLogger<QS, MB>::init(LogConfig config) {
     config_ = std::move(config);
@@ -101,13 +63,18 @@ void AsyncLogger<QS, MB>::shut_down() {
 }
 
 template<size_t QS, size_t MB>
-void AsyncLogger<QS, MB>::log(const LogLevel level, std::string_view message) {
-    if (level > config_.min_level) return; // Early return if irrelevant log level
+void AsyncLogger<QS, MB>::log(const LogLevel              level,
+                              const std::string_view      message,
+                              const std::source_location &loc) {
+    if (level > config_.min_level) return;
 
     LogRecord record{};
-    record.level          = level;
+    record.level = level;
+    // Ensure that we we truncate the log message where nessecary
     record.message_length = std::min(message.length(), MAX_MESSAGE_LENGTH);
     std::memcpy(record.message, message.data(), record.message_length);
+    record.location = loc;
+
 
     // TODO: Use function pointer here after init for logging policy to avoid runtime check
     if (config_.queue_full_policy == QueueFullPolicy::e_BLOCK) {

@@ -2,6 +2,7 @@ add_library(core_logging STATIC
         async_logger.cpp
         async_logger.h
         loggerr_enums.h
+        logger_utils.h
 )
 
 target_include_directories(core_logging PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

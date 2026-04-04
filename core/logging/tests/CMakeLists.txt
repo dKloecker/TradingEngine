@@ -1,6 +1,7 @@
 find_package(GTest REQUIRED)
 
-add_executable(logging_tests async_logger_test.cpp)
+add_executable(logging_tests async_logger_test.cpp
+        ../logger_utils.h)
 target_link_libraries(logging_tests PRIVATE core_logging GTest::gtest_main)
 target_compile_definitions(logging_tests PRIVATE TESTING)
 
