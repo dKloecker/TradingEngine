@@ -1,7 +1,7 @@
 add_library(core_logging STATIC
         async_logger.cpp
         async_logger.h
-        loggerr_enums.h
+        logger_enums.h
         logger_utils.h
 )
 
