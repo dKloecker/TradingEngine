@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "async_logger.h"
-#include "loggerr_enums.h"
+#include "logger_enums.h"
 
 namespace dsl::test::logging {
 namespace fs = std::filesystem;

@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "async_logger.h"
-#include "loggerr_enums.h"
+#include "logger_enums.h"
 #include "logger_utils.h"
 
 namespace dsl::test::logging {

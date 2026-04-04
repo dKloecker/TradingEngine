@@ -11,7 +11,7 @@
 #include <source_location>
 #include <thread>
 
-#include "loggerr_enums.h"
+#include "logger_enums.h"
 #include "spsc_queue.h"
 
 namespace dsl {
