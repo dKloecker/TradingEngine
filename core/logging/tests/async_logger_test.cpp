@@ -13,9 +13,12 @@ namespace fs = std::filesystem;
 
 class AsyncLoggerTest : public ::testing::Test {
 protected:
-    fs::path log_path = "./test_async_logger.txt";
+    fs::path log_path;
 
     void SetUp() override {
+        const auto *info = testing::UnitTest::GetInstance()->current_test_info();
+        log_path         = std::string("./test_async_logger_") + info->name() + ".txt";
+        if (fs::exists(log_path)) fs::remove(log_path);
         // Ensure clean state before each test
         AsyncLogger<>::instance().reset();
     }
