@@ -50,7 +50,8 @@ jobs:
         run: |
           for bench in \
             ./build/core/memory/benchmarks/memory_benchmarks \
-            ./build/core/queue/benchmarks/queue_benchmarks; do
+            ./build/core/queue/benchmarks/queue_benchmarks \
+            ./build/core/logging/benchmarks/logging_benchmarks; do
             "$bench" --benchmark_format=json --benchmark_repetitions=5 \
               --benchmark_out="bench_$(basename "$bench").json"
           done
