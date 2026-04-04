@@ -7,8 +7,8 @@
 #include "logger_utils.h"
 
 namespace dsl {
-template<size_t QS, size_t MB>
-void AsyncLogger<QS, MB>::start_up() {
+template<size_t QueueCapacity, size_t FlushThreshold>
+void AsyncLogger<QueueCapacity, FlushThreshold>::start_up() {
     status_          = LoggerStatus::e_STARTING;
     const auto &path = config_.log_file;
     // Create path if necessary
@@ -65,8 +65,8 @@ void AsyncLogger<QS, MB>::start_up() {
     status_ = LoggerStatus::e_RUNNING;
 }
 
-template<size_t QS, size_t MB>
-void AsyncLogger<QS, MB>::shut_down() {
+template<size_t QueueCapacity, size_t FlushThreshold>
+void AsyncLogger<QueueCapacity, FlushThreshold>::shut_down() {
     status_ = LoggerStatus::e_STOPPING;
     stop_.request_stop();
     if (consumer_thread_.joinable()) consumer_thread_.join();
@@ -79,16 +79,16 @@ AsyncLogger<QS, MB>::~AsyncLogger() {
     shut_down();
 }
 
-template<size_t QS, size_t MB>
-void AsyncLogger<QS, MB>::init(LogConfig config) {
+template<size_t QueueCapacity, size_t FlushThreshold>
+void AsyncLogger<QueueCapacity, FlushThreshold>::init(LogConfig config) {
     config_ = std::move(config);
     start_up();
 }
 
-template<size_t QS, size_t MB>
-void AsyncLogger<QS, MB>::log(const LogLevel              level,
-                              const std::string_view      message,
-                              const std::source_location &loc) {
+template<size_t QueueCapacity, size_t FlushThreshold>
+void AsyncLogger<QueueCapacity, FlushThreshold>::log(const LogLevel              level,
+                                                     const std::string_view      message,
+                                                     const std::source_location &loc) {
     if (level > config_.min_level) return;
 
     LogRecord record{};
@@ -102,8 +102,8 @@ void AsyncLogger<QS, MB>::log(const LogLevel              level,
 }
 
 #ifdef TESTING
-template<size_t QueueSize, size_t MessageBuffer>
-void AsyncLogger<QueueSize, MessageBuffer>::reset() {
+template<size_t QueueCapacity, size_t FlushThreshold>
+void AsyncLogger<QueueCapacity, FlushThreshold>::reset() {
     shut_down();
     stop_   = std::stop_source{};
     status_ = LoggerStatus::e_UNKNOWN;

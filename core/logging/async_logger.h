@@ -27,10 +27,11 @@ inline constexpr size_t FLUSH_THRESHOLD    = 32;
  * @brief A single log entry to be enqueued and written by the consumer thread
  */
 struct LogRecord {
-    LogLevel                                           level                                     = LogLevel::e_INFO;
-    size_t                                             message_length                            = 0;
-    char                                               message[log_defaults::MAX_MESSAGE_LENGTH] = {};
-    std::source_location                               location{};
+    LogLevel             level                                     = LogLevel::e_INFO;
+    size_t               message_length                            = 0;
+    char                 message[log_defaults::MAX_MESSAGE_LENGTH] = {};
+    std::source_location location{};
+    // TODO: use a different time system here
     std::chrono::time_point<std::chrono::system_clock> time_stamp = std::chrono::system_clock::now();
 };
 
