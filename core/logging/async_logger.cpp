@@ -20,6 +20,7 @@ AsyncLogger<QS, MB>::~AsyncLogger() {
 
 template<size_t QS, size_t MB>
 void AsyncLogger<QS, MB>::start_up() {
+    status_          = LoggerStatus::e_STARTING;
     const auto &path = config_.log_file;
     // Create path if necessary
     if (path.has_parent_path()) {
@@ -53,13 +54,16 @@ void AsyncLogger<QS, MB>::start_up() {
         // Flush remaining messages before shutdown
         this->log_file_.flush();
     });
+    status_ = LoggerStatus::e_RUNNING;
 }
 
 template<size_t QS, size_t MB>
 void AsyncLogger<QS, MB>::shut_down() {
+    status_ = LoggerStatus::e_STOPPING;
     stop_.request_stop();
     if (consumer_thread_.joinable()) consumer_thread_.join();
     if (log_file_.is_open()) log_file_.close();
+    status_ = LoggerStatus::e_STOPPED;
 }
 
 template<size_t QS, size_t MB>
@@ -95,7 +99,8 @@ void AsyncLogger<QS, MB>::log(const LogLevel              level,
 template<size_t QueueSize, size_t MessageBuffer>
 void AsyncLogger<QueueSize, MessageBuffer>::reset() {
     shut_down();
-    stop_ = std::stop_source{};
+    stop_   = std::stop_source{};
+    status_ = LoggerStatus::e_UNKNOWN;
 }
 
 // Small Queue for Tests

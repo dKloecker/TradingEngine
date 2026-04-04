@@ -79,9 +79,8 @@ template<size_t QueueCapacity = log_defaults::QUEUE_CAPACITY,
     size_t FlushThreshold = log_defaults::FLUSH_THRESHOLD>
 class AsyncLogger {
     static constexpr size_t STREAM_BUFFER_SIZE = FlushThreshold * log_defaults::MAX_MESSAGE_LENGTH;
-
-    // TODO: Add Status for logger (i.e. running, stopped etc) and prevent usage if not started
-    LogConfig config_{};
+    LoggerStatus            status_            = LoggerStatus::e_UNKNOWN;
+    LogConfig               config_{};
 
     std::thread      consumer_thread_{};
     std::stop_source stop_{};

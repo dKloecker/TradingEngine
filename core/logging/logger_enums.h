@@ -41,4 +41,12 @@ constexpr std::string_view to_string(const BackPressurePolicy policy) {
     return "";
 }
 
+enum class LoggerStatus : std::uint8_t {
+    e_UNKNOWN,
+    e_STARTING,
+    e_RUNNING,
+    e_STOPPING,
+    e_STOPPED
+};
+
 #endif //TRADING_LOGGER_ENUMS_H
