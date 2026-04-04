@@ -163,7 +163,7 @@ TEST_F(AsyncLoggerTest, DropQueuePolicyDrops) {
         .min_level         = LogLevel::e_DEBUG,
         .log_file          = log_path,
         .format            = "%m",
-        .queue_full_policy = QueueFullPolicy::e_DROP
+        .back_preassure_policy = QueueFullPolicy::e_DROP
     };
 
     SmallLogger::instance().init(cfg);
@@ -194,7 +194,7 @@ TEST_F(AsyncLoggerTest, DropBelowLevelDrops) {
         .min_level         = LogLevel::e_DEBUG,
         .log_file          = log_path,
         .format            = "%L %m",
-        .queue_full_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL,
+        .back_preassure_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL,
         .drop_threshold    = LogLevel::e_WARN
     };
 
@@ -223,7 +223,7 @@ TEST_F(AsyncLoggerTest, DropBelowLevelLogsAboveThreshold) {
         .min_level         = LogLevel::e_DEBUG,
         .log_file          = log_path,
         .format            = "%L %m",
-        .queue_full_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL,
+        .back_preassure_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL,
         .drop_threshold    = LogLevel::e_WARN
     };
 
@@ -253,7 +253,7 @@ TEST_F(AsyncLoggerTest, BlockPolicyBlocksUntilProcessed) {
         .min_level         = LogLevel::e_DEBUG,
         .log_file          = log_path,
         .format            = "%m",
-        .queue_full_policy = QueueFullPolicy::e_BLOCK
+        .back_preassure_policy = QueueFullPolicy::e_BLOCK
     };
 
     SmallLogger::instance().init(cfg);

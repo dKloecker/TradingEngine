@@ -34,8 +34,8 @@ void AsyncLogger<QS, MB>::start_up() {
 
     // Launch Consumer Thread
     consumer_thread_ = std::thread([this] {
-        LogRecord record;
         while (!this->stop_.stop_requested() || !this->queue_.empty()) {
+            LogRecord record;
             // We can go back to sleep if nothing is happening
             if (this->queue_.empty() || !this->queue_.pop(record)) {
                 // TODO: move behind iteration so that we try a few times before we yield.
@@ -70,18 +70,18 @@ void AsyncLogger<QS, MB>::log(const LogLevel              level,
 
     LogRecord record{};
     record.level = level;
-    // Ensure that we we truncate the log message where nessecary
+    // Ensure that we truncate the log message where necessary
     record.message_length = std::min(message.length(), MAX_MESSAGE_LENGTH);
     std::memcpy(record.message, message.data(), record.message_length);
     record.location = loc;
 
 
     // TODO: Use function pointer here after init for logging policy to avoid runtime check
-    if (config_.queue_full_policy == QueueFullPolicy::e_BLOCK) {
+    if (config_.back_preassure_policy == QueueFullPolicy::e_BLOCK) {
         while (!queue_.push(record)) {}
-    } else if (config_.queue_full_policy == QueueFullPolicy::e_DROP) {
+    } else if (config_.back_preassure_policy == QueueFullPolicy::e_DROP) {
         queue_.push(record);
-    } else if (config_.queue_full_policy == QueueFullPolicy::e_DROP_BELOW_LEVEL) {
+    } else if (config_.back_preassure_policy == QueueFullPolicy::e_DROP_BELOW_LEVEL) {
         // Attempt one publish and return
         if (record.level > config_.drop_threshold) {
             queue_.push(record);

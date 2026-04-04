@@ -14,8 +14,12 @@
 #include "spsc_queue.h"
 
 namespace dsl {
+/// Maximum length of a log message in bytes. Messages exceeding this are truncated.
 inline constexpr size_t MAX_MESSAGE_LENGTH = 256;
 
+/**
+ * @brief A single log entry to be enqueued and written by the consumer thread
+ */
 struct LogRecord {
     LogLevel             level                       = LogLevel::e_INFO;
     size_t               message_length              = 0;
@@ -25,7 +29,7 @@ struct LogRecord {
 };
 
 /**
- * Configuration structure for the logging system.
+ * @brief Configuration for @c AsyncLogger
  */
 struct LogConfig {
     // Minimum level that will be logged. Messages below this are discarded.
@@ -36,22 +40,35 @@ struct LogConfig {
 
     /**
      * Format String using % placeholders.
-     * %T - Timestamp
-     * %L - Log Level
-     * %f - File Name
-     * %l - Line Number
-     * %F - Function Name
-     * %m - Log Message
+     * @p %T - Timestamp
+     * @p %L - Log Level
+     * @p %f - File Name
+     * @p %l - Line Number
+     * @p %F - Function Name
+     * @p %m - Log Message
      */
     std::string format = "%T [%L] %f:%l (%F) %m";
 
-    // Backpressure policy
-    QueueFullPolicy queue_full_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL;
-    LogLevel        drop_threshold    = LogLevel::e_WARN;
+
+    QueueFullPolicy back_preassure_policy = QueueFullPolicy::e_DROP_BELOW_LEVEL;
+
+    /**
+     * Threshold used by @c e_DROP_BELOW_LEVEL policy.
+     * Messages with severity below this level are dropped when the queue is full.
+     * Messages at or above this level block until space is available.
+     */
+    LogLevel drop_threshold = LogLevel::e_WARN;
 };
 
 /**
- * Asynchronous Logger
+ * @brief Singleton lock-free asynchronous logger.
+ *
+ * Log records are placed onto an SPSC queue by the producing thread and
+ * written to a log file by a dedicated consumer thread.
+ * The output stream is buffered, but @c FATAL and @c ERROR records trigger an immediate flush.
+ *
+ * @tparam QueueSize     Capacity of the underlying SPSC queue
+ * @tparam MessageBuffer Number of messages worth of stream buffer space.
  */
 template<size_t QueueSize = 512, size_t MessageBuffer = 32>
 class AsyncLogger {
@@ -86,14 +103,6 @@ class AsyncLogger {
 public:
     ~AsyncLogger();
 
-#ifdef TESTING
-    /**
-     * Testing Helper (Replicates Destructor and resets logger)
-     */
-    void reset();
-#endif
-
-    // Non-copyable, non-movable
     AsyncLogger(const AsyncLogger &) = delete;
 
     AsyncLogger &operator=(const AsyncLogger &) = delete;
@@ -101,6 +110,11 @@ public:
     AsyncLogger(AsyncLogger &&) = delete;
 
     AsyncLogger &operator=(AsyncLogger &&) = delete;
+
+#ifdef TESTING
+    /// @brief Shuts down the logger and resets the internal state. Test-only.
+    void reset();
+#endif
 
     /** Access to Logger Instance */
     static AsyncLogger &instance() {
@@ -110,7 +124,7 @@ public:
 
     /**
      * Initialize logger based  provided configuration.
-     * Must be configured before any logs are written.
+     * Must be called before any logs are written.
      * @param config for Logging
      * @throws std::runtime_error on failure
      */
@@ -132,8 +146,15 @@ public:
     }
 
     /**
-     * Constructs a LogRecord, with the current timestamp, applies the back-pressure policy,
-     * and adds record to the queue.
+     * @brief Enqueue a log record.
+     *
+     * Captures the current timestamp and source location, constructs a
+     * @c LogRecord, and enqueues it according to the configured backpressure policy.
+     * Messages longer than @c MAX_MESSAGE_LENGTH are truncated.
+     *
+     * @param level   Severity of this log entry
+     * @param message Log message content
+     * @param loc     Source location (captured automatically at the call site).
      */
     void log(LogLevel                    level,
              std::string_view            message,
@@ -165,13 +186,18 @@ public:
     };
 };
 
+/// @brief Default logger type alias.
 using Logger = AsyncLogger<512, 32>;
-// Convenience to allow format strings
+
+/// @name Convenience logging macros
+/// Support @c std::format syntax. Source location is captured automatically.
+/// @{
 #define LOG_DEBUG(FMT, ...) Logger::instance().debug(std::format(FMT __VA_OPT__(,) __VA_ARGS__))
 #define LOG_INFO(FMT, ...) Logger::instance().info(std::format(FMT __VA_OPT__(,) __VA_ARGS__))
 #define LOG_WARN(FMT, ...) Logger::instance().warn(std::format(FMT __VA_OPT__(,) __VA_ARGS__))
 #define LOG_ERROR(FMT, ...) Logger::instance().error(std::format(FMT __VA_OPT__(,) __VA_ARGS__))
 #define LOG_FATAL(FMT, ...) Logger::instance().fatal(std::format(FMT __VA_OPT__(,) __VA_ARGS__))
+///@}
 }
 
 #endif //TRADING_ASYNC_LOGGER_H
