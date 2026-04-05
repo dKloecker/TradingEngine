@@ -226,4 +226,40 @@ TEST_F(OrderBookTest, ReplaceLosesTimePriority) {
     EXPECT_EQ(level.head->order.order_id, 2);
     EXPECT_EQ(level.tail->order.order_id, 3);
 }
+
+TEST_F(OrderBookTest, BestBidAcrossOrders) {
+    book.add({1, 50, 100});
+    book.add({2, 60, 100});
+    book.add({3, 55, 100});
+
+    EXPECT_EQ(book.best_bid(), 60);
+}
+
+TEST_F(OrderBookTest, BestAskAcrossOrders) {
+    book.add({1, 70, 100, Side::e_SELL});
+    book.add({2, 60, 100, Side::e_SELL});
+    book.add({3, 65, 100, Side::e_SELL});
+
+    EXPECT_EQ(book.best_ask(), 60);
+}
+
+TEST_F(OrderBookTest, BestBidUpdatesOnRemoval) {
+    book.add({1, 60, 100});
+    book.add({2, 50, 100});
+
+    EXPECT_EQ(book.best_bid(), 60);
+
+    book.remove(1);
+    EXPECT_EQ(book.best_bid(), 50);
+}
+
+TEST_F(OrderBookTest, BestAskUpdatesOnRemoval) {
+    book.add({1, 60, 100, Side::e_SELL});
+    book.add({2, 70, 100, Side::e_SELL});
+
+    EXPECT_EQ(book.best_ask(), 60);
+
+    book.remove(1);
+    EXPECT_EQ(book.best_ask(), 70);
+}
 } // namespace dsl::test::order

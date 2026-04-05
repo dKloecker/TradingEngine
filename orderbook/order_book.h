@@ -87,7 +87,7 @@ class OrderBook {
     }
 
     /**
-     * @brief Destroys a @C OrderNode and returns memory to pool
+     * @brief Destroys a @c OrderNode and returns memory to pool
      * @param bo Pointer of Order to be de-allocated
      */
     void destroy_order(OrderNode *bo) {
@@ -104,7 +104,7 @@ class OrderBook {
     /**
      *
      * Reduces order quantity by a given amount, or removes Order entirely if amount >= remaining
-     * @retun @c True if order was found, @c false otherwise
+     * @return @c True if order was found, @c false otherwise
      */
     bool reduce(OrderId order_id, Quantity amount);
 
@@ -129,9 +129,11 @@ public:
      */
     bool replace(OrderId old_order_id, const Order &new_order);
 
-    TickPrice best_bid() const { return {}; }
+    /** @return Best bid price, or MinTick if no bids */
+    TickPrice best_bid() const;
 
-    TickPrice best_ask() const { return {}; }
+    /** @return Best ask price, or MaxTick if no asks. */
+    TickPrice best_ask() const;
 
     [[nodiscard]] const PriceLevel &level_at(const Side side, const TickPrice tick) const {
         return (side == Side::e_BUY) ? bids_[to_index(tick)] : asks_[to_index(tick)];
@@ -238,6 +240,23 @@ bool OrderBook<MinTick, MaxTick>::replace(const OrderId old_order_id, const Orde
     append_to_level(bo);
     order_map_[new_order.order_id] = bo;
     return true;
+}
+
+template<TickPrice MinTick, TickPrice MaxTick>
+TickPrice OrderBook<MinTick, MaxTick>::best_bid() const {
+    for (TickPrice tp = MaxTick - 1; tp >= MinTick; --tp) {
+        if (bids_[to_index(tp)].count > 0) return tp;
+        if (tp == MinTick) break; // prevent underflow
+    }
+    return MinTick;
+}
+
+template<TickPrice MinTick, TickPrice MaxTick>
+TickPrice OrderBook<MinTick, MaxTick>::best_ask() const {
+    for (TickPrice tp = MinTick; tp < MaxTick; ++tp) {
+        if (asks_[to_index(tp)].count > 0) return tp;
+    }
+    return MaxTick;
 }
 } // namespace dsl::order
 
