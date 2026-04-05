@@ -25,18 +25,15 @@ void AsyncLogger<QueueCapacity, FlushThreshold>::start_up() {
     // Pick Handling based off desired back pressure policy
     switch (config_.back_pressure_policy) {
         case BackPressurePolicy::e_BLOCK: {
-            enqueue_handler_ =
-                    &enqueue_block;
+            enqueue_handler_ = &enqueue_block;
         }
         break;
         case BackPressurePolicy::e_DROP: {
-            enqueue_handler_ =
-                    &enqueue_drop;
+            enqueue_handler_ = &enqueue_drop;
         }
         break;
         case BackPressurePolicy::e_DROP_BELOW_LEVEL: {
-            enqueue_handler_ =
-                    &enqueue_drop_below_level;
+            enqueue_handler_ = &enqueue_drop_below_level;
         }
         break;
     }
@@ -54,7 +51,7 @@ void AsyncLogger<QueueCapacity, FlushThreshold>::start_up() {
 
             // Write log to log file
             write_log(this->log_file_, this->config_.format, record);
-            // If we have a error flush buffe[
+            // If we have a error flush buffer
             if (record.level <= LogLevel::e_ERROR) {
                 this->log_file_.flush();
             }

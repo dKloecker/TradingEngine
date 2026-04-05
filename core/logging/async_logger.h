@@ -56,7 +56,6 @@ struct LogConfig {
      */
     std::string format = "%T [%L] %f:%l (%F) %m";
 
-
     BackPressurePolicy back_pressure_policy = BackPressurePolicy::e_DROP_BELOW_LEVEL;
 
     /**
