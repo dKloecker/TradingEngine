@@ -1,7 +1,9 @@
 #ifndef TRADING_POOL_ALLOCATOR_H
 #define TRADING_POOL_ALLOCATOR_H
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <list>
 #include <memory>
 

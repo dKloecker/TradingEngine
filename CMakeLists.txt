@@ -8,3 +8,4 @@ set(CMAKE_CXX_STANDARD 26)
 enable_testing()
 
 add_subdirectory(core)
+add_subdirectory(orderbook)
