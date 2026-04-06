@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-#include "order_book.h"
+#include "orderbook/order_book.h"
 
-namespace dsl::test::order {
-using namespace dsl::order;
+namespace trading::orderbook::test {
+using namespace trading::orderbook;
 
 struct TradeEvent {
     TickPrice price;
@@ -354,4 +354,4 @@ TEST_F(OrderBookTest, BestAskUpdatesOnRemoval) {
 
     EXPECT_EQ(listener().updates.size(), 3);
 }
-} // namespace dsl::test::order
+} // namespace trading::orderbook::test

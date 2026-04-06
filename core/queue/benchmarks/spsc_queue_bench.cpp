@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <thread>
 
-#include "spsc_queue.h"
+#include "core/queue/spsc_queue.h"
 
 struct SimpleObject {
     int someValue = 42;

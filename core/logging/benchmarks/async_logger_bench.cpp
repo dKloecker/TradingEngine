@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <benchmark/benchmark.h>
 
-#include "async_logger.h"
+#include "core/logging/async_logger.h"
 
 namespace dsl::benchmarks::logging {
 namespace fs = std::filesystem;

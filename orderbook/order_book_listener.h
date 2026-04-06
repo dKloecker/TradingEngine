@@ -4,9 +4,9 @@
 #ifndef TRADING_ORDER_BOOK_LISTENER_H
 #define TRADING_ORDER_BOOK_LISTENER_H
 
-#include "order.h"
+#include "orderbook/order.h"
 
-namespace dsl::order {
+namespace trading::orderbook {
 template<typename DerivedT>
 class OrderBookListener {
 public:

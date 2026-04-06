@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <random>
 
-#include "fixed_size_pool_resource.h"
+#include "core/memory/fixed_size_pool_resource.h"
 
 struct alignas(16) SmallObject {
     std::array<std::byte, 16> data;

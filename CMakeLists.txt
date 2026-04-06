@@ -9,3 +9,4 @@ enable_testing()
 
 add_subdirectory(core)
 add_subdirectory(orderbook)
+add_subdirectory(networking)

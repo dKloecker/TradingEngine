@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace dsl::order {
+namespace trading::orderbook {
 // Prices are expressed in Tick amounts (0.001) for now.
 constexpr float TickSize = 0.001;
 
@@ -22,6 +22,6 @@ struct Order {
    Quantity  quantity = 0;
    Side      side     = Side::e_BUY;
 };
-} // namespace dsl::order
+} // namespace trading::orderbook
 
 #endif // TRADING_ORDER_H

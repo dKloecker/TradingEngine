@@ -2,7 +2,7 @@
 // Created by Dominic Kloecker on 23/03/2026.
 //
 #include <gtest/gtest.h>
-#include "fixed_size_pool_resource.h"
+#include "core/memory/fixed_size_pool_resource.h"
 
 namespace dsl::test::memory {
 

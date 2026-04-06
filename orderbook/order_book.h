@@ -2,14 +2,14 @@
 #define TRADING_ORDER_BOOK_H
 
 #include <array>
-#include <cstddef>
+#include <type_traits>
 #include <unordered_map>
 
-#include "fixed_size_pool_resource.h"
-#include "order.h"
-#include "order_book_listener.h"
+#include "core/memory/fixed_size_pool_resource.h"
+#include "orderbook/order.h"
+#include "orderbook/order_book_listener.h"
 
-namespace dsl::order {
+namespace trading::orderbook {
 /**
  * Intrusive linked list node wrapping an @c Order for placement
  * within a PriceLevel queue.
@@ -50,12 +50,12 @@ class OrderBook {
 
     static constexpr size_t NUM_CHUNKS  = 4096;
     static constexpr size_t NUM_LEVELS  = MaxTick - MinTick;
-    static constexpr size_t BUCKET_SIZE = NUM_LEVELS * 10;
+    static constexpr size_t BUCKET_SIZE = NUM_LEVELS * 4;
 
     OBListener listener_;
 
     /** @brief Pool allocator for @c OrderNode instances. */
-    fixed_size_pool_resource<sizeof(OrderNode), NUM_CHUNKS> pool_;
+    dsl::fixed_size_pool_resource<sizeof(OrderNode), NUM_CHUNKS> pool_;
 
     /**
      * Bids and asks stored in Sorted Arrays Representing Price Levels
@@ -305,6 +305,6 @@ TickPrice OrderBook<MinTick, MaxTick, OBListener>::best_ask() const {
     }
     return MaxTick;
 }
-} // namespace dsl::order
+} // namespace trading::orderbook
 
 #endif // TRADING_ORDER_BOOK_H

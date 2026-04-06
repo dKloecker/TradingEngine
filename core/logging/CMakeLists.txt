@@ -5,7 +5,7 @@ add_library(core_logging STATIC
         logger_utils.h
 )
 
-target_include_directories(core_logging PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(core_logging PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(core_logging PUBLIC core_queue)
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR TRADING_BUILD_TESTING)

@@ -1,12 +1,6 @@
-add_library(orderbook STATIC
-        order_book.cpp
-        order.cpp
-        order_book_listener.cpp
-        order_book_listener.h
-)
-target_include_directories(orderbook PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-target_link_libraries(orderbook PUBLIC core)
+add_library(orderbook INTERFACE)
+target_include_directories(orderbook INTERFACE ${CMAKE_SOURCE_DIR})
+target_link_libraries(orderbook INTERFACE core)
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR TRADING_BUILD_TESTING)
     add_subdirectory(tests)

@@ -3,7 +3,7 @@
 
 #include <boost/lockfree/spsc_queue.hpp>
 
-#include "spsc_queue.h"
+#include "core/queue/spsc_queue.h"
 
 struct SimpleObject {
     int someValue = 42;

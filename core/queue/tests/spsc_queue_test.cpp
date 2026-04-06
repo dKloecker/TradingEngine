@@ -2,7 +2,7 @@
 // Created by Dominic Kloecker on 23/03/2026.
 //
 #include <gtest/gtest.h>
-#include "spsc_queue.h"
+#include "core/queue/spsc_queue.h"
 
 #include <thread>
 
