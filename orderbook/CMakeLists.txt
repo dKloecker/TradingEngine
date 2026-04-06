@@ -1,6 +1,8 @@
 add_library(orderbook STATIC
         order_book.cpp
         order.cpp
+        order_book_listener.cpp
+        order_book_listener.h
 )
 target_include_directories(orderbook PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
