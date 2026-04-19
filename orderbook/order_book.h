@@ -58,7 +58,7 @@ public:
     Handler *handler_;
 
     /** @brief Pool allocator for @c OrderNode instances. */
-    dsl::fixed_size_pool_resource<sizeof(OrderNode), NUM_CHUNKS> pool_;
+    dsl::static_fixed_size_pool_resource<sizeof(OrderNode), NUM_CHUNKS> pool_;
 
     /**
      * Bids and asks stored in Sorted Arrays Representing Price Levels
