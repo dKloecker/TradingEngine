@@ -9,20 +9,26 @@ using namespace trading::orderbook;
 struct TradeEvent {
     TickPrice price;
     Quantity  qty;
-    Side      aggressor;
+    Side      aggressor; // opposite of resting/matched side
 };
 
 struct BookUpdateEvent {
     Side side;
 };
 
-class TestListener : public OrderBookListener<TestListener> {
+class TestListener : public BaseOrderBookCallBackHandler<TestListener> {
 public:
     std::vector<TradeEvent>      trades;
     std::vector<BookUpdateEvent> updates;
 
-    void on_trade_impl(TickPrice price, Quantity qty, Side aggressor) {
-        trades.push_back({price, qty, aggressor});
+    void on_add_impl(const Order &) {}
+    void on_cancel_impl(const Order &, Quantity) {}
+    void on_replace_impl(const Order &, const Order &) {}
+
+    void on_execute_impl(OrderId, const Side matched_side, const TickPrice price,
+                         const Quantity filled, Quantity) {
+        const Side aggressor = (matched_side == Side::e_BUY) ? Side::e_SELL : Side::e_BUY;
+        trades.push_back({price, filled, aggressor});
     }
 
     void on_book_update_impl(Side side) {
@@ -39,10 +45,11 @@ using TestBook = OrderBook<0, 100, TestListener>;
 
 class OrderBookTest : public ::testing::Test {
 public:
-    TestBook book;
+    TestListener listener_;
+    TestBook     book{&listener_};
 
     const TestBook &    cbook() const { return book; }
-    const TestListener &listener() const { return book.listener(); }
+    const TestListener &listener() const { return listener_; }
 };
 
 TEST_F(OrderBookTest, AddBuyOrder) {
@@ -310,21 +317,29 @@ TEST_F(OrderBookTest, ReplaceLosesTimePriority) {
 }
 
 TEST_F(OrderBookTest, BestBidAcrossOrders) {
-    book.add({1, 50, 100});
-    book.add({2, 60, 100});
-    book.add({3, 55, 100});
+    book.add({1, 50, 1});
+    book.add({2, 60, 2});
+    book.add({3, 55, 3});
 
-    EXPECT_EQ(book.best_bid(), 60);
+    EXPECT_EQ(cbook().level_at(Side::e_BUY, 50).total_quantity, 1);
+    EXPECT_EQ(cbook().level_at(Side::e_BUY, 60).total_quantity, 2);
+    EXPECT_EQ(cbook().level_at(Side::e_BUY, 55).total_quantity, 3);
+
+    EXPECT_EQ(*book.best_bid(), 60);
 
     EXPECT_EQ(listener().updates.size(), 3);
 }
 
 TEST_F(OrderBookTest, BestAskAcrossOrders) {
-    book.add({1, 70, 100, Side::e_SELL});
-    book.add({2, 60, 100, Side::e_SELL});
-    book.add({3, 65, 100, Side::e_SELL});
+    book.add({1, 70, 1, Side::e_SELL});
+    book.add({2, 60, 2, Side::e_SELL});
+    book.add({3, 65, 3, Side::e_SELL});
 
-    EXPECT_EQ(book.best_ask(), 60);
+    EXPECT_EQ(cbook().level_at(Side::e_SELL, 70).total_quantity, 1);
+    EXPECT_EQ(cbook().level_at(Side::e_SELL, 60).total_quantity, 2);
+    EXPECT_EQ(cbook().level_at(Side::e_SELL, 65).total_quantity, 3);
+
+    EXPECT_EQ(*book.best_ask(), 60);
 
     EXPECT_EQ(listener().updates.size(), 3);
     for (const auto &u: listener().updates)
@@ -353,5 +368,75 @@ TEST_F(OrderBookTest, BestAskUpdatesOnRemoval) {
     EXPECT_EQ(book.best_ask(), 70);
 
     EXPECT_EQ(listener().updates.size(), 3);
+}
+
+TEST_F(OrderBookTest, AvailableBetweenBids) {
+    book.add({1, 90, 100, Side::e_BUY});
+    book.add({2, 90, 100, Side::e_BUY});
+    book.add({3, 70, 100, Side::e_BUY});
+    book.add({4, 70, 100, Side::e_BUY});
+    book.add({5, 10, 100, Side::e_BUY});
+
+    // Best bid = 90, walking DOWN toward limit
+    EXPECT_EQ(book.available_between(Side::e_BUY, 90, 100), 100);  // Only 100 of 200 @ P90
+    EXPECT_EQ(book.available_between(Side::e_BUY, 90, 1000), 200); // All 200 @ P90
+    EXPECT_EQ(book.available_between(Side::e_BUY, 70, 1000), 400); // 200 @ P90 + 200 @ P70
+    EXPECT_EQ(book.available_between(Side::e_BUY, 70, 300), 300);  // Capped by out_of
+    EXPECT_EQ(book.available_between(Side::e_BUY, 10, 499), 499);  // 499 of 500 total
+    EXPECT_EQ(book.available_between(Side::e_BUY, 0, 1000), 500);  // All volume, limit below book
+}
+
+TEST_F(OrderBookTest, AsksUpToRange) {
+    book.add({1, 10, 100, Side::e_SELL});
+    book.add({2, 50, 200, Side::e_SELL});
+    book.add({3, 90, 300, Side::e_SELL});
+
+    // Walk from best ask (10) up to price 60
+    Quantity total = 0;
+    for (const auto &level: book.asks_up_to(60)) {
+        total += level.total_quantity;
+    }
+    EXPECT_EQ(total, 300); // 100 @ P10 + 200 @ P50
+
+    // Walk up to price 90 — should include everything
+    total = 0;
+    for (const auto &level: book.asks_up_to(90)) {
+        total += level.total_quantity;
+    }
+    EXPECT_EQ(total, 600);
+
+    // Walk up to price 5 — below best ask, should be empty
+    total = 0;
+    for (const auto &level: book.asks_up_to(5)) {
+        total += level.total_quantity;
+    }
+    EXPECT_EQ(total, 0);
+}
+
+TEST_F(OrderBookTest, BidsDownToRange) {
+    book.add({1, 90, 300, Side::e_BUY});
+    book.add({2, 50, 200, Side::e_BUY});
+    book.add({3, 10, 100, Side::e_BUY});
+
+    // Walk from best bid (90) down to price 40
+    Quantity total = 0;
+    for (const auto &level: book.bids_down_to(40)) {
+        total += level.total_quantity;
+    }
+    EXPECT_EQ(total, 500); // 300 @ P90 + 200 @ P50
+
+    // Walk down to price 10 — everything
+    total = 0;
+    for (const auto &level: book.bids_down_to(10)) {
+        total += level.total_quantity;
+    }
+    EXPECT_EQ(total, 600);
+
+    // Walk down to price 95 — above best bid, should be empty
+    total = 0;
+    for (const auto &level: book.bids_down_to(95)) {
+        total += level.total_quantity;
+    }
+    EXPECT_EQ(total, 0);
 }
 } // namespace trading::orderbook::test
