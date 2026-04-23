@@ -25,7 +25,7 @@ public:
     struct pool_options {
         size_t chunk_size;
         size_t chunks_per_block;
-        size_t alignment;
+        size_t alignment = alignof(std::max_align_t);
     };
 
     /**
@@ -46,6 +46,12 @@ public:
             throw std::invalid_argument("alignment must be greater than zero");
         allocate_new_block();
     }
+
+    fixed_size_pool_resource(fixed_size_pool_resource &&) = default;
+
+    fixed_size_pool_resource(const fixed_size_pool_resource &) = delete;
+
+    fixed_size_pool_resource &operator=(const fixed_size_pool_resource &) = delete;
 
 private:
     /** Options Provided to Pool Resource */

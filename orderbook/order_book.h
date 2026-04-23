@@ -3,11 +3,10 @@
 
 #include <array>
 #include <ranges>
-#include <type_traits>
 #include <unordered_map>
-#include <__ranges/views.h>
 
 #include "core/memory/fixed_size_pool_resource.h"
+#include "core/memory/pool_resource.h"
 #include "orderbook/order.h"
 #include "orderbook/order_book_listener.h"
 
@@ -57,9 +56,6 @@ public:
 
     Handler *handler_;
 
-    /** @brief Pool allocator for @c OrderNode instances. */
-    dsl::static_fixed_size_pool_resource<sizeof(OrderNode), NUM_CHUNKS> pool_;
-
     /**
      * Bids and asks stored in Sorted Arrays Representing Price Levels
      * Each level is directly accessible by its index expressed in the TickPrice
@@ -80,11 +76,21 @@ public:
     // That seems like it would otherwise be an issue
 
 
+    /** @brief Pool allocator for @c OrderNode instances. */
+    dsl::static_fixed_size_pool_resource<sizeof(OrderNode), NUM_CHUNKS> order_resource_;
+
+    /** @brief Pools for Hash Map keeping track of OrderIds*/
+    dsl::pool_resource oder_map_resource_{
+        dsl::pool_resource::pool_options{
+            .max_chunks_per_block   = NUM_CHUNKS,
+            .largest_required_chunk = NUM_CHUNKS * sizeof(Order)
+        }
+    };
     /**
      * @brief Maps order IDs to their @c OrderNode
-     * @todo Replace with a custom hash table backed by variable size pool allocator.
+     * Using the pool_resource as underlying storage
      */
-    std::unordered_map<OrderId, OrderNode *> order_map_{BUCKET_SIZE};
+    std::pmr::unordered_map<OrderId, OrderNode *> order_map_{&oder_map_resource_};
 
     /**
      * @brief Converts a tick price to an array index.
@@ -112,7 +118,7 @@ public:
      */
     template<typename... Args>
     [[nodiscard]] OrderNode *make_order(Args &&... args) {
-        void *memory = pool_.allocate(sizeof(OrderNode), alignof(OrderNode));
+        void *memory = order_resource_.allocate(sizeof(OrderNode), alignof(OrderNode));
         return new(memory) OrderNode{std::forward<Args>(args)...};
     }
 
@@ -122,7 +128,7 @@ public:
      */
     void destroy_order(OrderNode *&book_order) {
         book_order->~OrderNode();
-        pool_.deallocate(book_order, sizeof(OrderNode), alignof(OrderNode));
+        order_resource_.deallocate(book_order, sizeof(OrderNode), alignof(OrderNode));
         book_order = nullptr;
     }
 
@@ -315,8 +321,6 @@ bool OrderBook<MinTick, MaxTick, OBListener>::replace(const OrderId old_order_id
     OrderNode *book_order = find_order(old_order_id);
     if (!book_order) return false;
     const Order old_snapshot = book_order->order;
-    const bool  bids_updated = old_snapshot.side == Side::e_BUY || new_order.side == Side::e_BUY;
-    const bool  asks_updated = old_snapshot.side == Side::e_SELL || new_order.side == Side::e_SELL;
     // Unlink Order from old Price Level
     unlink_from_level(book_order);
     // If order has a different ID, delete old record from map
