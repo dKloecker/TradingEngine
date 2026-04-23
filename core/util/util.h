@@ -10,6 +10,11 @@ namespace dsl {
 template<size_t Value>
 concept PowerOfTwo = (Value > 0) && ((Value & (Value - 1)) == 0);
 
+constexpr size_t align_up(const size_t size, const size_t alignment) {
+    return ((size + alignment - 1) / alignment) * alignment;
+}
+
+
 constexpr size_t round_up_pow2(size_t v) {
     v--;
     v |= v >> 1;

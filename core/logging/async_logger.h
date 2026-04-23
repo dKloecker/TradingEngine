@@ -12,8 +12,8 @@
 #include <source_location>
 #include <thread>
 
-#include "logger_enums.h"
-#include "spsc_queue.h"
+#include "core/logging/logger_enums.h"
+#include "core/queue/spsc_queue.h"
 
 namespace dsl {
 namespace log_defaults {
@@ -55,7 +55,6 @@ struct LogConfig {
      * @p %m - Log Message
      */
     std::string format = "%T [%L] %f:%l (%F) %m";
-
 
     BackPressurePolicy back_pressure_policy = BackPressurePolicy::e_DROP_BELOW_LEVEL;
 

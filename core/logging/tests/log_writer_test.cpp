@@ -3,9 +3,9 @@
 #include <sstream>
 #include <gtest/gtest.h>
 
-#include "async_logger.h"
-#include "logger_enums.h"
-#include "logger_utils.h"
+#include "core/logging/async_logger.h"
+#include "core/logging/logger_enums.h"
+#include "core/logging/logger_utils.h"
 
 namespace dsl::test::logging {
 class WriteLogTest : public ::testing::Test {

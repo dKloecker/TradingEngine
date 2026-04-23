@@ -6,6 +6,7 @@
 #define TRADING_LOGGER_ENUMS_H
 #include <cstdint>
 
+namespace dsl {
 enum class LogLevel : std::uint8_t {
     e_FATAL = 0,
     e_ERROR = 1,
@@ -48,5 +49,5 @@ enum class LoggerStatus : std::uint8_t {
     e_STOPPING,
     e_STOPPED
 };
-
+}
 #endif //TRADING_LOGGER_ENUMS_H
