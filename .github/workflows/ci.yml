@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -52,7 +54,11 @@ jobs:
             ./build/core/memory/benchmarks/memory_benchmarks \
             ./build/core/queue/benchmarks/queue_benchmarks \
             ./build/core/logging/benchmarks/logging_benchmarks; do
-            "$bench" --benchmark_format=json --benchmark_repetitions=5 \
+            "$bench" --benchmark_format=json \
+              --benchmark_repetitions=3 \
+              --benchmark_min_time=0.2s \
+              --benchmark_min_warmup_time=0.2 \
+              --benchmark_enable_random_interleaving=true \
               --benchmark_out="bench_$(basename "$bench").json"
           done
           jq -s '{ benchmarks: [.[].benchmarks[]] }' bench_*.json > benchmark_results.json
